@@ -2115,9 +2115,11 @@ const PagedEditorComponent = forwardRef<PagedEditorRef, PagedEditorProps>(
 
         const overlayRect = overlay.getBoundingClientRect();
 
-        // Find spans with PM position data
+        // Find spans with PM position data. Scope to `.layout-page-content`
+        // so we don't match HF spans whose `data-pm-start` collides with
+        // body positions (HF content is parsed via a separate PM doc).
         const spans = pagesContainerRef.current.querySelectorAll(
-          'span[data-pm-start][data-pm-end]'
+          '.layout-page-content span[data-pm-start][data-pm-end]'
         );
 
         for (const span of Array.from(spans)) {
@@ -2176,8 +2178,11 @@ const PagedEditorComponent = forwardRef<PagedEditorRef, PagedEditorProps>(
           }
         }
 
-        // Fallback: try to find position in empty paragraphs (they have empty runs)
-        const emptyRuns = pagesContainerRef.current.querySelectorAll('.layout-empty-run');
+        // Fallback: try to find position in empty paragraphs (they have empty runs).
+        // Same HF-scoping rationale as the span lookup above.
+        const emptyRuns = pagesContainerRef.current.querySelectorAll(
+          '.layout-page-content .layout-empty-run'
+        );
         for (const emptyRun of Array.from(emptyRuns)) {
           const paragraph = emptyRun.closest('.layout-paragraph') as HTMLElement;
           if (!paragraph) continue;
@@ -2306,9 +2311,10 @@ const PagedEditorComponent = forwardRef<PagedEditorRef, PagedEditorProps>(
             const overlayRect = overlay.getBoundingClientRect();
             const domRects: SelectionRect[] = [];
 
-            // Find spans that intersect with the selection range
+            // Same HF-scoping rationale as `getCaretFromDom` above; without
+            // it, body selections paint phantom rects on header/footer text.
             const spans = pagesContainerRef.current.querySelectorAll(
-              'span[data-pm-start][data-pm-end]'
+              '.layout-page-content span[data-pm-start][data-pm-end]'
             );
 
             for (const span of Array.from(spans)) {
