@@ -740,9 +740,29 @@ function serializeInlineSdt(sdt: InlineSdt): string {
 
   const contentXml = sdt.content
     .map((item) => {
-      if (item.type === 'run') return serializeRun(item);
-      if (item.type === 'hyperlink') return serializeHyperlink(item);
-      return '';
+      switch (item.type) {
+        case 'run':
+          return serializeRun(item);
+        case 'hyperlink':
+          return serializeHyperlink(item);
+        case 'simpleField':
+          return serializeSimpleField(item);
+        case 'complexField':
+          return serializeComplexField(item);
+        case 'inlineSdt':
+          return serializeInlineSdt(item);
+        case 'mathEquation':
+          return item.ommlXml || '';
+        default: {
+          // Exhaustiveness check: if a new type is added to
+          // InlineSdt['content'] (see types/content.ts) without a matching
+          // case here, TypeScript errors out instead of silently dropping
+          // the content on save. Keep this in sync with the filter in
+          // fromProseDoc.createInlineSdtFromNode.
+          const _exhaustive: never = item;
+          return _exhaustive;
+        }
+      }
     })
     .join('');
 

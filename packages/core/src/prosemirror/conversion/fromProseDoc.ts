@@ -811,10 +811,19 @@ function createInlineSdtFromNode(node: PMNode): InlineSdt {
     checked: attrs.checked != null ? (attrs.checked as boolean) : undefined,
   };
 
-  // Extract content from the sdt node's children
+  // Extract content from the sdt node's children. OOXML allows runs,
+  // hyperlinks, simple/complex fields, nested SDTs, and math here — keep
+  // all of them so docProps-bound fields and similar template content
+  // survive a round-trip through the editor.
   const sdtContent = extractParagraphContent(node);
   const content = sdtContent.filter(
-    (c): c is Run | Hyperlink => c.type === 'run' || c.type === 'hyperlink'
+    (c): c is InlineSdt['content'][number] =>
+      c.type === 'run' ||
+      c.type === 'hyperlink' ||
+      c.type === 'simpleField' ||
+      c.type === 'complexField' ||
+      c.type === 'inlineSdt' ||
+      c.type === 'mathEquation'
   );
 
   return {
