@@ -1,0 +1,406 @@
+/**
+ * Header / footer rendering for renderPage.
+ *
+ * Owns `renderHeaderFooterContent` — the mini-flow that lays paragraphs and
+ * tables inside a header/footer container (separate from the body flow) —
+ * plus the floating-image and floating-table positioning helpers used by
+ * that flow. Coordinates returned by `resolveHeaderFooterFloatingTablePosition`
+ * are relative to the HF container's flow origin (`layout.flowTop`/`flowLeft`)
+ * so callers can drop them into `style.top`/`style.left`.
+ */
+
+import type {
+  FlowBlock,
+  Measure,
+  ParagraphBlock,
+  ParagraphMeasure,
+  ParagraphFragment,
+  TableBlock,
+  TableFragment,
+} from '../../layout-engine/types';
+import { renderParagraphFragment } from '../renderParagraph';
+import { renderTableFragment } from '../renderTable';
+import { emuToPixels } from '../../utils/units';
+import type { RenderContext, RenderPageOptions } from '../renderPage';
+
+/**
+ * Header/footer content for rendering
+ */
+export interface HeaderFooterContent {
+  /** Flow blocks for the header/footer content. */
+  blocks: FlowBlock[];
+  /** Measurements for the blocks. */
+  measures: Measure[];
+  /** Total height of the content. */
+  height: number;
+  /** Top-most visual extent relative to the nominal flow origin. */
+  visualTop?: number;
+  /** Bottom-most visual extent relative to the nominal flow origin. */
+  visualBottom?: number;
+}
+
+export interface HeaderFooterLayoutInfo {
+  flowTop: number;
+  flowLeft: number;
+  contentWidth: number;
+  pageWidth: number;
+  pageHeight: number;
+  margins: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+}
+
+function getPositionAlignment(
+  position: { align?: string; alignment?: string } | undefined
+): string | undefined {
+  return position?.align ?? position?.alignment;
+}
+
+function resolveHeaderFooterFloatTop(
+  floatImg: {
+    height: number;
+    paragraphY: number;
+    position: {
+      vertical?: { relativeTo?: string; posOffset?: number; align?: string; alignment?: string };
+    };
+  },
+  layout: HeaderFooterLayoutInfo
+): number {
+  const v = floatImg.position.vertical;
+  if (!v) {
+    return floatImg.paragraphY;
+  }
+
+  const align = getPositionAlignment(v);
+  const offsetPx = v.posOffset !== undefined ? emuToPixels(v.posOffset) : undefined;
+
+  if (v.relativeTo === 'page') {
+    if (offsetPx !== undefined) {
+      return offsetPx - layout.flowTop;
+    }
+    if (align === 'top') {
+      return -layout.flowTop;
+    }
+    if (align === 'bottom') {
+      return layout.pageHeight - floatImg.height - layout.flowTop;
+    }
+    if (align === 'center') {
+      return (layout.pageHeight - floatImg.height) / 2 - layout.flowTop;
+    }
+  }
+
+  if (v.relativeTo === 'margin') {
+    const marginTop = layout.margins.top;
+    const marginHeight = layout.pageHeight - layout.margins.top - layout.margins.bottom;
+    if (offsetPx !== undefined) {
+      return marginTop + offsetPx - layout.flowTop;
+    }
+    if (align === 'top') {
+      return marginTop - layout.flowTop;
+    }
+    if (align === 'bottom') {
+      return marginTop + marginHeight - floatImg.height - layout.flowTop;
+    }
+    if (align === 'center') {
+      return marginTop + (marginHeight - floatImg.height) / 2 - layout.flowTop;
+    }
+  }
+
+  if (offsetPx !== undefined) {
+    return floatImg.paragraphY + offsetPx;
+  }
+
+  return floatImg.paragraphY;
+}
+
+function applyHeaderFooterFloatHorizontalPosition(
+  img: HTMLImageElement,
+  floatImg: {
+    width: number;
+    position: {
+      horizontal?: { relativeTo?: string; posOffset?: number; align?: string; alignment?: string };
+    };
+  },
+  layout: HeaderFooterLayoutInfo
+): void {
+  const h = floatImg.position.horizontal;
+  if (!h) {
+    img.style.left = '0';
+    return;
+  }
+
+  const align = getPositionAlignment(h);
+
+  if (h.relativeTo === 'page') {
+    if (h.posOffset !== undefined) {
+      img.style.left = `${emuToPixels(h.posOffset) - layout.flowLeft}px`;
+      return;
+    }
+    if (align === 'right') {
+      img.style.left = `${layout.pageWidth - floatImg.width - layout.flowLeft}px`;
+      return;
+    }
+    if (align === 'center') {
+      img.style.left = `${(layout.pageWidth - floatImg.width) / 2 - layout.flowLeft}px`;
+      return;
+    }
+    if (align === 'left') {
+      img.style.left = `${-layout.flowLeft}px`;
+      return;
+    }
+  }
+
+  if (h.posOffset !== undefined) {
+    img.style.left = `${emuToPixels(h.posOffset)}px`;
+    return;
+  }
+
+  if (align === 'right') {
+    img.style.left = `${layout.contentWidth - floatImg.width}px`;
+    return;
+  }
+  if (align === 'center') {
+    img.style.left = `${(layout.contentWidth - floatImg.width) / 2}px`;
+    return;
+  }
+
+  img.style.left = '0';
+}
+
+/**
+ * Resolve the (left, top) position for a floating table inside a header/
+ * footer container, per ECMA-376 §17.4.57. The table's `floating.tblpX/tblpY`
+ * are already in pixels (parser converted from twips); `horzAnchor`/
+ * `vertAnchor` decide whether the offset is relative to the page, the
+ * margins, or the surrounding text/column. Coordinates returned are
+ * relative to the HF container's flow origin (`layout.flowTop` /
+ * `layout.flowLeft`) so the caller can drop them straight into
+ * `style.top` / `style.left`.
+ */
+export function resolveHeaderFooterFloatingTablePosition(
+  floating: NonNullable<TableBlock['floating']>,
+  layout: HeaderFooterLayoutInfo
+): { left: number; top: number } {
+  // Vertical: tblpY relative to vertAnchor.
+  let top = floating.tblpY ?? 0;
+  if (floating.vertAnchor === 'page') {
+    top -= layout.flowTop;
+  } else if (floating.vertAnchor === 'margin') {
+    top += layout.margins.top - layout.flowTop;
+  }
+
+  // Horizontal: tblpX relative to horzAnchor.
+  let left = floating.tblpX ?? 0;
+  if (floating.horzAnchor === 'page') {
+    left -= layout.flowLeft;
+  } else if (floating.horzAnchor === 'margin') {
+    left += layout.margins.left - layout.flowLeft;
+  }
+
+  return { left, top };
+}
+
+/**
+ * Render header or footer content
+ */
+export function renderHeaderFooterContent(
+  content: HeaderFooterContent,
+  context: RenderContext,
+  options: RenderPageOptions,
+  layout: HeaderFooterLayoutInfo
+): HTMLElement {
+  const doc = options.document ?? document;
+  const containerEl = doc.createElement('div');
+  containerEl.style.position = 'relative';
+
+  // Use content width from context if available, otherwise default to reasonable width
+  const contentWidth = context.contentWidth ?? 600;
+
+  // Collect floating images to render separately, with their paragraph's Y position
+  const floatingImages: Array<{
+    src: string;
+    width: number;
+    height: number;
+    alt?: string;
+    paragraphY: number; // Y position of the containing paragraph
+    position: {
+      horizontal?: {
+        relativeTo?: string;
+        posOffset?: number;
+        align?: string;
+        alignment?: string;
+      };
+      vertical?: {
+        relativeTo?: string;
+        posOffset?: number;
+        align?: string;
+        alignment?: string;
+      };
+    };
+  }> = [];
+
+  let cursorY = 0;
+
+  for (let i = 0; i < content.blocks.length; i++) {
+    const block = content.blocks[i];
+    const measure = content.measures[i];
+    if (!block || !measure) continue;
+
+    if (block.kind === 'paragraph' && measure.kind === 'paragraph') {
+      const paragraphBlock = block as ParagraphBlock;
+      const paragraphMeasure = measure as ParagraphMeasure;
+      const paragraphSpacingBefore = paragraphBlock.attrs?.spacing?.before ?? 0;
+
+      // Track the Y position where this paragraph starts
+      const paragraphStartY = cursorY;
+
+      // Extract floating images and filter them from runs
+      const inlineRuns: typeof paragraphBlock.runs = [];
+      for (const run of paragraphBlock.runs) {
+        if (run.kind === 'image' && 'position' in run && run.position) {
+          const imgRun = run as {
+            kind: 'image';
+            src: string;
+            width: number;
+            height: number;
+            alt?: string;
+            position: {
+              horizontal?: {
+                relativeTo?: string;
+                posOffset?: number;
+                align?: string;
+                alignment?: string;
+              };
+              vertical?: {
+                relativeTo?: string;
+                posOffset?: number;
+                align?: string;
+                alignment?: string;
+              };
+            };
+          };
+          floatingImages.push({
+            src: imgRun.src,
+            width: imgRun.width,
+            height: imgRun.height,
+            alt: imgRun.alt,
+            paragraphY: paragraphStartY, // Store where this paragraph starts
+            position: imgRun.position,
+          });
+        } else {
+          // Keep non-floating runs for inline rendering
+          inlineRuns.push(run);
+        }
+      }
+
+      // Create a modified paragraph block without floating images
+      const inlineBlock: ParagraphBlock = {
+        ...paragraphBlock,
+        runs: inlineRuns,
+      };
+
+      // Create a synthetic fragment for the paragraph
+      const syntheticFragment: ParagraphFragment = {
+        kind: 'paragraph',
+        blockId: paragraphBlock.id,
+        x: 0,
+        y: cursorY + paragraphSpacingBefore,
+        width: contentWidth,
+        height: paragraphMeasure.totalHeight,
+        fromLine: 0,
+        toLine: paragraphMeasure.lines.length,
+      };
+
+      // Render paragraph fragment (with floating images filtered out). The
+      // HF context positions blocks absolutely within its own container,
+      // stacking vertically via `cursorY` — `paragraphMeasure.totalHeight`
+      // already includes `spaceBefore` / `spaceAfter`. Pass `positioning:
+      // 'absolute'` so the renderer applies that mode itself instead of the
+      // caller having to flip its inline style after the fact (#379).
+      const fragEl = renderParagraphFragment(
+        syntheticFragment,
+        inlineBlock,
+        paragraphMeasure,
+        { ...context, positioning: 'absolute' },
+        { document: doc }
+      );
+
+      fragEl.style.top = `${cursorY + paragraphSpacingBefore}px`;
+      fragEl.style.left = '0';
+      fragEl.style.width = `${contentWidth}px`;
+
+      containerEl.appendChild(fragEl);
+      cursorY += paragraphMeasure.totalHeight;
+    } else if (block.kind === 'table' && measure.kind === 'table') {
+      // HF tables don't paginate, so the synthetic fragment covers all rows.
+      const syntheticFragment: TableFragment = {
+        kind: 'table',
+        blockId: block.id,
+        x: 0,
+        y: cursorY,
+        width: measure.totalWidth,
+        height: measure.totalHeight,
+        fromRow: 0,
+        toRow: measure.rows.length,
+        pmStart: block.pmStart,
+        pmEnd: block.pmEnd,
+      };
+      const fragEl = renderTableFragment(
+        syntheticFragment,
+        block,
+        measure,
+        { ...context, positioning: 'absolute' },
+        { document: doc }
+      );
+
+      // Floating tables (`<w:tblpPr>`) opt out of the cursorY flow. They
+      // anchor at (tblpX, tblpY) relative to the page/margin/column per
+      // ECMA-376 §17.4.57 and don't advance cursorY (#382). Inline tables
+      // keep their cursorY-based stacking.
+      if (block.floating) {
+        const { left, top } = resolveHeaderFooterFloatingTablePosition(block.floating, layout);
+        fragEl.style.top = `${top}px`;
+        fragEl.style.left = `${left}px`;
+        containerEl.appendChild(fragEl);
+        // Floating tables do NOT advance cursorY — surrounding HF blocks
+        // flow as if the table weren't there. Word renders text behind
+        // floating tables when no wrap behavior is requested; we match.
+      } else {
+        // Inline placement: top/left stack within the HF container at cursorY.
+        fragEl.style.top = `${cursorY}px`;
+        fragEl.style.left = '0';
+        containerEl.appendChild(fragEl);
+        cursorY += measure.totalHeight;
+      }
+    }
+  }
+
+  // Render floating images with absolute positioning
+  for (const floatImg of floatingImages) {
+    const img = doc.createElement('img');
+    img.src = floatImg.src;
+    img.width = floatImg.width;
+    img.height = floatImg.height;
+    if (floatImg.alt) img.alt = floatImg.alt;
+
+    img.style.position = 'absolute';
+    img.style.display = 'block';
+    // Header/footer images can intentionally extend beyond the text area.
+    // Override global img resets (for example max-width: 100%) so the DOCX
+    // anchor extent is honored instead of shrinking to the header/footer box.
+    img.style.width = `${floatImg.width}px`;
+    img.style.height = `${floatImg.height}px`;
+    img.style.maxWidth = 'none';
+    img.style.maxHeight = 'none';
+
+    applyHeaderFooterFloatHorizontalPosition(img, floatImg, layout);
+    img.style.top = `${resolveHeaderFooterFloatTop(floatImg, layout)}px`;
+
+    containerEl.appendChild(img);
+  }
+
+  return containerEl;
+}
