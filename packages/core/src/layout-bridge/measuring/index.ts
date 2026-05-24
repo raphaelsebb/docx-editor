@@ -11,6 +11,7 @@
 export {
   getCanvasContext,
   resetCanvasContext,
+  setCanvasContext,
   buildFontString,
   getFontMetrics,
   measureTextWidth,

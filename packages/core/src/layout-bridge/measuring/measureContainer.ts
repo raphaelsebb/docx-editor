@@ -99,6 +99,18 @@ export function resetCanvasContext(): void {
   canvasContext = null;
 }
 
+/**
+ * Inject a 2D rendering context to use for all subsequent text measurements.
+ * Lets non-DOM runtimes (Node, Bun, workers) plug a Canvas2D-compatible
+ * implementation such as `@napi-rs/canvas` or `canvaskit-wasm`. The injected
+ * context must implement at least `font` and `measureText`.
+ *
+ * @public
+ */
+export function setCanvasContext(ctx: CanvasRenderingContext2D): void {
+  canvasContext = ctx;
+}
+
 /** Cached resolved font data (CSS fallback + single-line ratio) */
 interface ResolvedFontCache {
   cssFallback: string;
