@@ -186,7 +186,9 @@ function renderHtmlCell(ctx: RenderContext, pkg: DocxPackage | undefined, cell: 
       const inner = renderHtmlInline(ctx, pkg, item.content, item.paraId);
       if (inner) parts.push(inner);
     } else if (item.type === 'table') {
-      const nested = renderTable(ctx, pkg, item);
+      // Nested tables inside an HTML cell stay HTML: GFM is not parsed
+      // inside HTML blocks, so a pipe-table here would render as literal text.
+      const nested = renderHtmlTable(ctx, pkg, item.rows, true);
       if (nested) parts.push(nested);
     }
   }
