@@ -18,8 +18,10 @@ export function escapeInline(text: string): string {
   // Underscore as emphasis marker: only at word boundaries.
   out = out.replace(/(^|\s)_/g, '$1\\_');
   out = out.replace(/_(\s|$)/g, '\\_$1');
-  // Angle brackets that could start an HTML tag or autolink.
-  out = out.replace(/<([A-Za-z!\/?])/g, '\\<$1');
+  // Angle brackets only escaped when they form a plausible HTML tag —
+  // an alphabetic name immediately followed by attributes/end. Prose like
+  // `x < y` and `i < n` stays untouched.
+  out = out.replace(/<(\/?[A-Za-z][\w-]*)(?=[\s/>])/g, '\\<$1');
   return out;
 }
 

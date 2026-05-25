@@ -28,7 +28,7 @@ import type {
 import { renderParagraph } from './renderParagraph';
 import { escapeTableCell } from './escape';
 import { registerImage } from './images';
-import { pushWarning } from './context';
+import { pushWarning } from './internals';
 import type { RenderContext } from './types';
 
 /** Render a `Table` as markdown. Picks GFM vs HTML based on cell features. */

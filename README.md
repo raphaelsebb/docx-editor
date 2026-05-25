@@ -119,7 +119,19 @@ Full docs: [`packages/nuxt`](packages/nuxt).
 
 ## Markdown export
 
-DOCX to Markdown with paged or continuous output. Structure preserved: tables, lists, hyperlinks, footnotes, comments, tracked changes. Try it: [`examples/markdown-playground`](examples/markdown-playground).
+```ts
+import { toMarkdown } from '@eigenpal/docx-editor-core/markdown';
+import { readFile } from 'node:fs/promises';
+const { markdown } = await toMarkdown(await readFile('doc.docx'));
+```
+
+Preserves page boundaries, merged-cell tables, tracked changes, comments, footnotes, and headers. Pandoc and mammoth flatten these; we keep them. Built on the same layout engine that paginates the live editor.
+
+- `toMarkdownPaged` — per-page output for RAG citations
+- `toMarkdownAsync` — `imageHandler` callback for vision-model descriptions
+- `useLayoutEngine` — server-side pagination via `@napi-rs/canvas` (optional)
+
+Live: [`examples/markdown-playground`](examples/markdown-playground). Docs: [`packages/core#docx--markdown`](packages/core).
 
 ## Plugins
 

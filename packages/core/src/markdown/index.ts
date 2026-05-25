@@ -32,9 +32,7 @@
 import type { Document } from '../types/document';
 import { parseDocx } from '../docx/parser';
 import { renderBlocks } from './renderBlock';
-import { badInputError, isDocument } from './input';
-import { newContext } from './context';
-import { appendTrailers } from './trailers';
+import { appendTrailers, badInputError, isDocument, newContext } from './internals';
 import type { MarkdownOptions, MarkdownResult } from './types';
 
 export type {
@@ -42,7 +40,6 @@ export type {
   ImageRef,
   ImageHandler,
   MarkdownOptions,
-  MarkdownOptionsBase,
   MarkdownResult,
   PagedMarkdownOptions,
   PagedMarkdownResult,

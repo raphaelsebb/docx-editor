@@ -27,7 +27,7 @@ import type {
 import { registerImage } from './images';
 import { escapeInline, escapeLinkUrl, escapeAltText } from './escape';
 import { wrapInsertion, wrapDeletion, wrapMoveFrom, wrapMoveTo, wrapComment } from './annotations';
-import { pushWarning } from './context';
+import { pushWarning } from './internals';
 import type { RenderContext } from './types';
 
 /**

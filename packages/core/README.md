@@ -14,15 +14,66 @@
 
 # @eigenpal/docx-editor-core
 
-Framework-agnostic core for the [docx-editor](https://docx-editor.dev). Parses DOCX, builds the document model, runs ProseMirror, and renders Word-fidelity pages. Powers the React and Vue adapters and anything else you build on top.
+Framework-agnostic core for the [docx-editor](https://docx-editor.dev). Parses DOCX, builds the document model, runs ProseMirror, renders Word-fidelity pages, **and converts DOCX to Markdown for LLM pipelines**. Powers the React and Vue adapters and anything else you build on top.
 
-## Quick Start
+## DOCX → Markdown
 
-Most users want the [React](https://www.npmjs.com/package/@eigenpal/docx-editor-react) or [Vue](https://www.npmjs.com/package/@eigenpal/docx-editor-vue) adapter. Reach for core directly when building a custom adapter, running headless on the server, or driving DOCX parsing/serialization without a UI.
+Best-in-class headless converter that preserves what Pandoc and mammoth throw away: page boundaries, merged-cell tables, tracked changes, comments, footnotes, headers. Built on the same layout engine that paginates our live WYSIWYG editor.
 
 ```bash
 npm install @eigenpal/docx-editor-core
 ```
+
+```ts
+import { toMarkdown } from '@eigenpal/docx-editor-core/markdown';
+import { readFile } from 'node:fs/promises';
+
+const { markdown, images, warnings } = await toMarkdown(await readFile('doc.docx'));
+console.log(markdown);
+```
+
+### Which function do I want?
+
+| Need                                                                         | Use                    |
+| ---------------------------------------------------------------------------- | ---------------------- |
+| One continuous markdown string                                               | `toMarkdown`           |
+| Per-page markdown (for RAG citations, page-anchored LLM input)               | `toMarkdownPaged`      |
+| Substitute each image through an async handler (vision models, blob uploads) | `toMarkdownAsync`      |
+| Both of the above                                                            | `toMarkdownPagedAsync` |
+
+### Compared to alternatives
+
+|                                          | this | mammoth | Pandoc  |
+| ---------------------------------------- | :--: | :-----: | :-----: |
+| Browser-native (no binary)               |  ✅  |   ✅    |   ❌    |
+| Page boundaries preserved                |  ✅  |   ❌    |   ❌    |
+| Merged-cell tables (`colspan`/`rowspan`) |  ✅  |   ❌    | partial |
+| Tracked changes (`<ins>`/`<del>`)        |  ✅  |   ❌    | partial |
+| Comments (inline + sidecar)              |  ✅  |   ❌    |   ❌    |
+| Image substitution callback              |  ✅  |   ❌    |   ❌    |
+| Auto-loaded Office font substitutes      |  ✅  |   ❌    |   ❌    |
+| Owns the full DOCX rendering stack       |  ✅  |   ❌    |   ❌    |
+
+### Server-side pagination
+
+For DOCX files that have never been opened in Word (programmatically generated, freshly built from templates), the heuristic page splitter has nothing to act on. Opt in to the layout engine instead:
+
+```bash
+npm install --save-optional @napi-rs/canvas
+```
+
+```ts
+import { toMarkdownPagedAsync } from '@eigenpal/docx-editor-core/markdown';
+const { pages } = await toMarkdownPagedAsync(buffer, { useLayoutEngine: 'fallback' });
+```
+
+The library auto-downloads Google's Croscore substitutes (Carlito for Calibri, Caladea for Cambria, Arimo for Arial/Aptos, Tinos for Times New Roman, Cousine for Courier New) into a tmp cache on first use.
+
+**Live demo:** [`examples/markdown-playground`](../../examples/markdown-playground) — drop a `.docx`, see Word view + markdown side by side, toggle every option live.
+
+## Quick Start for the WYSIWYG editor
+
+Most users want the [React](https://www.npmjs.com/package/@eigenpal/docx-editor-react) or [Vue](https://www.npmjs.com/package/@eigenpal/docx-editor-vue) adapter. Reach for core directly when building a custom adapter, running headless on the server, or driving DOCX parsing/serialization without a UI.
 
 ```ts
 import { readFile } from 'node:fs/promises';

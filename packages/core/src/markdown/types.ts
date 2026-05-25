@@ -154,13 +154,7 @@ export interface MarkdownOptionsBase {
  *
  * @public
  */
-export interface MarkdownOptions extends MarkdownOptionsBase {
-  /**
-   * Where footnote definitions land. Currently only `'end'` is supported.
-   * Reserved for future expansion to `'inline'` / `'per-page'` variants.
-   */
-  footnotes?: 'end';
-}
+export interface MarkdownOptions extends MarkdownOptionsBase {}
 
 /**
  * Options for {@link toMarkdownPaged} and {@link toMarkdownPagedAsync}.
@@ -169,11 +163,6 @@ export interface MarkdownOptions extends MarkdownOptionsBase {
  * @public
  */
 export interface PagedMarkdownOptions extends MarkdownOptionsBase {
-  /**
-   * Where footnote definitions land. Paged mode collects refs across all
-   * pages and emits them at the end of the last page.
-   */
-  footnotes?: 'end';
   /**
    * Whether to emit Word's page headers and footers around each page's
    * content (rendered with the wrapper chosen by `annotations`).
@@ -245,7 +234,6 @@ export interface ResolvedOptions {
   trackedChanges: 'clean' | 'annotate';
   comments: 'strip' | 'inline' | 'sidecar';
   hyperlinks: 'inline' | 'reference';
-  footnotes: 'end';
   /** Defaults to `'strip'` in non-paged mode. */
   headerFooter: 'strip' | 'first-page' | 'all';
   imagePath?: (info: ImageMeta) => string;

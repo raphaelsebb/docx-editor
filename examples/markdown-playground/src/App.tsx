@@ -16,7 +16,6 @@ type Tracked = 'clean' | 'annotate';
 type Comments = 'strip' | 'inline' | 'sidecar';
 type Hyperlinks = 'inline' | 'reference';
 type Annotations = 'html' | 'pandoc' | 'strip';
-type Footnotes = 'end';
 type HeaderFooter = 'strip' | 'first-page' | 'all';
 
 interface Options {
@@ -24,7 +23,6 @@ interface Options {
   comments: Comments;
   hyperlinks: Hyperlinks;
   annotations: Annotations;
-  footnotes: Footnotes;
   headerFooter: HeaderFooter;
 }
 
@@ -33,7 +31,6 @@ const DEFAULTS: Options = {
   comments: 'inline',
   hyperlinks: 'inline',
   annotations: 'html',
-  footnotes: 'end',
   headerFooter: 'strip',
 };
 
@@ -77,7 +74,6 @@ export function App() {
           comments: opts.comments,
           hyperlinks: opts.hyperlinks,
           annotations: opts.annotations,
-          footnotes: opts.footnotes,
         };
         const r =
           method === 'paged'

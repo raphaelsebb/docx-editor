@@ -126,7 +126,6 @@ export type {
   ImageMeta,
   ImageRef,
   MarkdownOptions,
-  MarkdownOptionsBase,
   MarkdownResult,
   PagedMarkdownOptions,
   PagedMarkdownResult,

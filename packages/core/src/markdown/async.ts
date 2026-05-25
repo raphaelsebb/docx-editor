@@ -22,8 +22,7 @@ import type { BlockContent, Document } from '../types/document';
 import { toMarkdown } from './index';
 import { toMarkdownPaged, renderFromGroups } from './paged';
 import { computePagedGroups } from './headlessLayout';
-import { isDocument } from './input';
-import { newContext } from './context';
+import { isDocument, newContext } from './internals';
 import { parseDocx } from '../docx/parser';
 import type {
   ImageHandler,

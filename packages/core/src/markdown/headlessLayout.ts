@@ -28,6 +28,12 @@ import { measureParagraph, setCanvasContext } from '../layout-bridge/measuring';
 import { measureTableBlock } from '../layout-bridge/measureTable';
 import { registerOfficeSubstitutes } from './officeFonts';
 
+/** US Letter in twips (8.5in × 11in × 1440 twips/in). */
+const DEFAULT_PAGE_WIDTH_TWIPS = 12240;
+const DEFAULT_PAGE_HEIGHT_TWIPS = 15840;
+/** 1 inch margin in twips. Matches Word's default. */
+const DEFAULT_MARGIN_TWIPS = 1440;
+
 let canvasReady: Promise<boolean> | undefined;
 
 /**
@@ -41,16 +47,16 @@ let canvasReady: Promise<boolean> | undefined;
  */
 async function ensureCanvas(): Promise<boolean> {
   if (canvasReady) return canvasReady;
-  canvasReady = (async () => {
+  const attempt = (async () => {
     if (typeof document !== 'undefined') return true;
     try {
       const mod = await import('@napi-rs/canvas');
       // Register Office-font substitutes (Carlito, Caladea, Arimo, ...) so
-      // the CSS cascade in `buildFontString` resolves to known metrics. Without
-      // these, "Calibri" falls through to whatever Skia picks as default and
-      // pagination diverges from what the browser produces.
+      // the CSS cascade in `buildFontString` resolves to known metrics.
+      // Without these, "Calibri" falls through to whatever Skia picks as
+      // default and pagination diverges from what the browser produces.
       await registerOfficeSubstitutes(mod);
-      const c = mod.createCanvas(2000, 2000);
+      const c = mod.createCanvas(1, 1);
       const ctx = c.getContext('2d');
       if (!ctx) return false;
       setCanvasContext(ctx as unknown as CanvasRenderingContext2D);
@@ -59,7 +65,13 @@ async function ensureCanvas(): Promise<boolean> {
       return false;
     }
   })();
-  return canvasReady;
+  canvasReady = attempt;
+  const ok = await attempt;
+  // Don't poison the memo with a failed result — let the next call retry.
+  // (Transient network failures during font download shouldn't permanently
+  // disable the feature for the process.)
+  if (!ok) canvasReady = undefined;
+  return ok;
 }
 
 /**
@@ -108,19 +120,21 @@ export async function computePagedGroups(doc: Document): Promise<BlockContent[][
 
   let layout: Layout;
   let blocks: FlowBlock[];
+  let pmDoc: import('prosemirror-model').Node;
   try {
-    const pmDoc = toProseDoc(doc);
+    pmDoc = toProseDoc(doc);
     blocks = toFlowBlocks(pmDoc);
     const sectPr = doc.package.document.finalSectionProperties;
-    const pageWidth = sectPr?.pageWidth ?? 12240; // 8.5in
-    const pageHeight = sectPr?.pageHeight ?? 15840; // 11in
     const twip2px = (twips: number): number => (twips / 1440) * 96;
-    const pageSize = { w: twip2px(pageWidth), h: twip2px(pageHeight) };
+    const pageSize = {
+      w: twip2px(sectPr?.pageWidth ?? DEFAULT_PAGE_WIDTH_TWIPS),
+      h: twip2px(sectPr?.pageHeight ?? DEFAULT_PAGE_HEIGHT_TWIPS),
+    };
     const margins = {
-      top: twip2px(sectPr?.marginTop ?? 1440),
-      right: twip2px(sectPr?.marginRight ?? 1440),
-      bottom: twip2px(sectPr?.marginBottom ?? 1440),
-      left: twip2px(sectPr?.marginLeft ?? 1440),
+      top: twip2px(sectPr?.marginTop ?? DEFAULT_MARGIN_TWIPS),
+      right: twip2px(sectPr?.marginRight ?? DEFAULT_MARGIN_TWIPS),
+      bottom: twip2px(sectPr?.marginBottom ?? DEFAULT_MARGIN_TWIPS),
+      left: twip2px(sectPr?.marginLeft ?? DEFAULT_MARGIN_TWIPS),
     };
     const contentWidth = pageSize.w - margins.left - margins.right;
     const measures = blocks.map((b) => measureBlockForLayout(b, contentWidth));
@@ -129,39 +143,48 @@ export async function computePagedGroups(doc: Document): Promise<BlockContent[][
     return null;
   }
 
-  // Walk source blocks and FlowBlocks in parallel. The order matches because
-  // `toProseDoc` and `toFlowBlocks` preserve document order. Synthetic
-  // FlowBlocks (sectionBreak / pageBreak / columnBreak) have no source
-  // counterpart, so we skip them in the source walk.
-  const flowBlockIndexByBlockId = new Map<string | number, number>();
-  blocks.forEach((b, i) => {
-    flowBlockIndexByBlockId.set(b.id, i);
-  });
-
+  // Map page → source-block index range. FlowBlocks carry `pmStart`, the
+  // ProseMirror position where the block lives. ProseDoc nodes appear in
+  // document order matching the source body, so we can derive a source
+  // block's pmStart by walking the body in parallel with the ProseDoc.
+  // This works even when one source paragraph produces multiple FlowBlocks
+  // (anchored textboxes split a paragraph into pre/inner/post nodes).
   const sourceBlocks = doc.package.document.content;
-  const sourceIndexByFlowIndex = new Map<number, number>();
-  let sourceIdx = 0;
-  for (let i = 0; i < blocks.length && sourceIdx < sourceBlocks.length; i++) {
-    const fb = blocks[i];
-    if (fb.kind === 'sectionBreak' || fb.kind === 'pageBreak' || fb.kind === 'columnBreak')
-      continue;
-    // Skip the matching source block too if it's metadata-only (very rare).
-    sourceIndexByFlowIndex.set(i, sourceIdx);
-    sourceIdx += 1;
-  }
+  const sourcePmStarts = computeSourcePmStarts(pmDoc, sourceBlocks.length);
+  const flowBlockByBlockId = new Map<string | number, FlowBlock>();
+  for (const b of blocks) flowBlockByBlockId.set(b.id, b);
 
-  // For each page, collect the lowest source index that appears. That tells
-  // us where this page's content starts in the source body. Sort pages by
-  // their starting source index and slice the source array accordingly.
+  /** Map a ProseMirror position to a source-block index (highest pmStart ≤ pos). */
+  const srcIndexAtPm = (pm: number | undefined): number | undefined => {
+    if (pm === undefined) return undefined;
+    let lo = 0;
+    let hi = sourcePmStarts.length - 1;
+    let best: number | undefined;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (sourcePmStarts[mid] <= pm) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return best;
+  };
+
+  // For each page, find the lowest source-block index whose pmStart is
+  // covered by any fragment on that page.
   const pageStarts: number[] = [];
   for (const page of layout.pages) {
     let pageMinSrc = Number.POSITIVE_INFINITY;
     for (const frag of page.fragments) {
-      const fbIdx = flowBlockIndexByBlockId.get(frag.blockId);
-      if (fbIdx === undefined) continue;
-      const srcIdx = sourceIndexByFlowIndex.get(fbIdx);
-      if (srcIdx === undefined) continue;
-      if (srcIdx < pageMinSrc) pageMinSrc = srcIdx;
+      const fb = flowBlockByBlockId.get(frag.blockId);
+      // SectionBreak / pageBreak / columnBreak FlowBlocks don't have pmStart
+      // typed on them, but the variants used as fragment anchors (paragraph,
+      // table, image, textBox) all do. Reach via `in` to keep TS happy.
+      const pmStart = fb && 'pmStart' in fb ? fb.pmStart : undefined;
+      const srcIdx = srcIndexAtPm(pmStart);
+      if (srcIdx !== undefined && srcIdx < pageMinSrc) pageMinSrc = srcIdx;
     }
     if (pageMinSrc !== Number.POSITIVE_INFINITY) pageStarts.push(pageMinSrc);
   }
@@ -175,4 +198,30 @@ export async function computePagedGroups(doc: Document): Promise<BlockContent[][
     groups.push(sourceBlocks.slice(from, to));
   }
   return groups;
+}
+
+/**
+ * Compute the ProseMirror `pmStart` of each top-level source body block.
+ *
+ * `toProseDoc` emits one PM node per source body item, in order. The PM
+ * position of the i-th top-level node is the cumulative size of every
+ * preceding top-level node plus the document's opening token. We snapshot
+ * those positions here so the page-mapping can locate each source block
+ * even when a single source paragraph produces multiple FlowBlocks (the
+ * textbox-split case).
+ */
+function computeSourcePmStarts(
+  pmDoc: import('prosemirror-model').Node,
+  expectedCount: number
+): number[] {
+  const starts: number[] = [];
+  let pos = 1; // doc opening token
+  pmDoc.forEach((child) => {
+    starts.push(pos);
+    pos += child.nodeSize;
+  });
+  // If toProseDoc emitted more or fewer nodes than source body items
+  // (e.g. trailing empty paragraph it added for ProseMirror schema
+  // requirements), trim to the source count for safety.
+  return starts.slice(0, expectedCount);
 }

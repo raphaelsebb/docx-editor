@@ -24,9 +24,7 @@ import type {
 } from '../types/document';
 import { renderBlocks } from './renderBlock';
 import { wrapHeaderFooter } from './annotations';
-import { badInputError, isDocument } from './input';
-import { newContext } from './context';
-import { appendTrailers } from './trailers';
+import { appendTrailers, badInputError, isDocument, newContext } from './internals';
 import type { PagedMarkdownOptions, PagedMarkdownResult, RenderContext } from './types';
 import { parseDocx } from '../docx/parser';
 

@@ -105,7 +105,7 @@ const SUBSTITUTES: SubstituteFont[] = [
   },
 ];
 
-let registerOnce: Promise<void> | undefined;
+let registerOnce: Promise<boolean> | undefined;
 
 /**
  * Ensure the Office-font substitutes are registered with `GlobalFonts`.
@@ -113,18 +113,26 @@ let registerOnce: Promise<void> | undefined;
  *
  * Accepts the lazy-loaded `@napi-rs/canvas` module so the caller controls
  * when the native binary is loaded.
+ *
+ * On failure (no network, no writable temp dir, etc.) the memo is cleared
+ * so the next call gets a fresh attempt rather than being permanently
+ * stuck with partially-registered fonts.
  */
-export function registerOfficeSubstitutes(
+export async function registerOfficeSubstitutes(
   canvasMod: typeof import('@napi-rs/canvas')
 ): Promise<void> {
-  if (registerOnce) return registerOnce;
-  registerOnce = (async () => {
+  if (registerOnce) {
+    await registerOnce;
+    return;
+  }
+  const attempt = (async (): Promise<boolean> => {
     const cacheDir = join(tmpdir(), 'eigenpal-docx-fonts');
     try {
       await mkdir(cacheDir, { recursive: true });
     } catch {
-      return;
+      return false;
     }
+    let registered = 0;
     await Promise.all(
       SUBSTITUTES.map(async (font) => {
         // Cache file keyed by primary (real) family name + style.
@@ -148,12 +156,16 @@ export function registerOfficeSubstitutes(
         for (const name of font.names) {
           try {
             canvasMod.GlobalFonts.register(bytes, name);
+            registered += 1;
           } catch {
             // Already registered or font format unsupported by this build.
           }
         }
       })
     );
+    return registered > 0;
   })();
-  return registerOnce;
+  registerOnce = attempt;
+  const ok = await attempt;
+  if (!ok) registerOnce = undefined;
 }
