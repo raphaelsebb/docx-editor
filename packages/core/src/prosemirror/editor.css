@@ -712,19 +712,17 @@
   box-sizing: border-box !important;
 }
 
-/* Remove the parent paragraph font strut; run spans keep their DOCX font metrics. */
+/*
+ * Image-only cells: zero the parent paragraph's font strut so the image
+ * height isn't padded by the parent font's line-box (#425). Scoped to
+ * paragraphs that contain an image — the previous broader selector also
+ * matched text-only `p:has(span)`, which collapsed text cells in the
+ * inline editor while the painter kept them at full height (#468).
+ */
 .hf-editor-pm .ProseMirror td p:has(img),
-.hf-editor-pm .ProseMirror th p:has(img),
-.hf-editor-pm .ProseMirror td p:has(span),
-.hf-editor-pm .ProseMirror th p:has(span) {
+.hf-editor-pm .ProseMirror th p:has(img) {
   font-size: 0 !important;
   line-height: 0 !important;
-}
-
-.hf-editor-pm .ProseMirror td p span:not(:has(> span)),
-.hf-editor-pm .ProseMirror th p span:not(:has(> span)) {
-  position: relative;
-  top: 0.4em;
 }
 
 /* ============================================================================
