@@ -212,6 +212,17 @@ function buildCellWidthStyles(attrs: TableCellAttrs): string[] {
   return styles;
 }
 
+/**
+ * Map OOXML `<w:vAlign>` values to valid CSS `vertical-align` keywords.
+ * The spec value `"center"` is not a legal `vertical-align` keyword on table
+ * cells — browsers silently ignore it and fall back to `baseline`/`top`,
+ * which is why inline-edit cells were top-aligned while the painter (which
+ * uses flexbox) centered them. CSS uses `middle` for table cells.
+ */
+function cssVerticalAlign(val: 'top' | 'center' | 'bottom'): string {
+  return val === 'center' ? 'middle' : val;
+}
+
 export const tableCellSpec: NodeSpec = {
   content: '(paragraph | table)+',
   tableRole: 'cell',
@@ -259,7 +270,7 @@ export const tableCellSpec: NodeSpec = {
 
     if (attrs.verticalAlign) {
       domAttrs['data-valign'] = attrs.verticalAlign;
-      styles.push(`vertical-align: ${attrs.verticalAlign}`);
+      styles.push(`vertical-align: ${cssVerticalAlign(attrs.verticalAlign)}`);
     }
     if (attrs.backgroundColor) {
       domAttrs['data-bgcolor'] = attrs.backgroundColor;
@@ -318,7 +329,7 @@ export const tableHeaderSpec: NodeSpec = {
 
     if (attrs.verticalAlign) {
       domAttrs['data-valign'] = attrs.verticalAlign;
-      styles.push(`vertical-align: ${attrs.verticalAlign}`);
+      styles.push(`vertical-align: ${cssVerticalAlign(attrs.verticalAlign)}`);
     }
 
     if (attrs.backgroundColor) {
