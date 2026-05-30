@@ -19,6 +19,7 @@
  *   - this file        — `createSuggestionModePlugin` + public re-exports
  */
 
+import { isHistoryTransaction } from 'prosemirror-history';
 import { Plugin } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 
@@ -134,14 +135,23 @@ export function createSuggestionModePlugin(initialActive = false, author = 'User
       const pluginState = suggestionModeKey.getState(newState);
       if (!pluginState?.active) return null;
 
-      // Skip the catch-all mark-as-insertion path for both:
+      // Skip the catch-all mark-as-insertion path for:
       //   - transactions we've already authored (`SUGGESTION_META`)
       //   - accept/reject command transactions (`SUGGESTION_BYPASS_META`)
+      //   - undo/redo (`isHistoryTransaction`)
       // The bypass meta is set by `resolveById` so structural-revision joins
       // (e.g. `pPrIns` reject → `tr.split` + `tr.setNodeMarkup`) aren't
       // re-wrapped as user insertions.
+      // History transactions are skipped because a tracked edit and its marks
+      // are recorded in one history event, so undo/redo already restores them;
+      // re-running the catch-all over the replayed steps mis-stamps an insertion
+      // on the boundary character. See eigenpal/docx-editor#633.
       const userTr = transactions.find(
-        (tr) => tr.docChanged && !tr.getMeta(SUGGESTION_META) && !tr.getMeta(SUGGESTION_BYPASS_META)
+        (tr) =>
+          tr.docChanged &&
+          !tr.getMeta(SUGGESTION_META) &&
+          !tr.getMeta(SUGGESTION_BYPASS_META) &&
+          !isHistoryTransaction(tr)
       );
       if (!userTr) return null;
 
