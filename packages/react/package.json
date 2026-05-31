@@ -1,7 +1,7 @@
 {
   "name": "@eigenpal/docx-js-editor",
   "version": "0.5.2",
-  "description": "A browser-based DOCX template editor with variable insertion support",
+  "description": "DEPRECATED: renamed to @eigenpal/docx-editor-react. A browser-based DOCX editor. Migration guide: https://www.docx-editor.dev/docs/latest/migration",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -67,7 +67,9 @@
     }
   },
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./dist/index.js",
+    "./dist/index.mjs"
   ],
   "files": [
     "dist",

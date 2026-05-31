@@ -1,3 +1,7 @@
+> ⚠️ **`@eigenpal/docx-js-editor` is deprecated.** It has been renamed to [`@eigenpal/docx-editor-react`](https://www.npmjs.com/package/@eigenpal/docx-editor-react), with breaking API changes (component renames, a removed prop, new i18n imports), so it is not a drop-in find/replace. This `0.x` line receives critical fixes only.
+>
+> Install the new package: `npm install @eigenpal/docx-editor-react`, then follow the [migration guide](https://www.docx-editor.dev/docs/latest/migration) before upgrading.
+
 <p align="center">
   <a href="https://www.docx-editor.dev/">
     <img src="./assets/header.png" alt="DOCX Editor — .docx in, .docx out. Open source, agent ready, client-side." width="500" />

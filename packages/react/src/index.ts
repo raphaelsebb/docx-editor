@@ -21,6 +21,25 @@
  */
 
 // ============================================================================
+// DEPRECATION NOTICE
+// ============================================================================
+// This package was renamed to @eigenpal/docx-editor-react. The 0.x line under
+// this name receives critical fixes only. Warn once per runtime on import.
+if (
+  typeof console !== 'undefined' &&
+  !(globalThis as { __docxJsEditorDeprecated?: boolean }).__docxJsEditorDeprecated
+) {
+  (globalThis as { __docxJsEditorDeprecated?: boolean }).__docxJsEditorDeprecated = true;
+  console.warn(
+    '[@eigenpal/docx-js-editor] This package is deprecated. It was renamed to ' +
+      '@eigenpal/docx-editor-react, with breaking API changes (not a drop-in rename). ' +
+      'The 0.x line receives critical fixes only. ' +
+      'Install: npm install @eigenpal/docx-editor-react — ' +
+      'Migration guide: https://www.docx-editor.dev/docs/latest/migration',
+  );
+}
+
+// ============================================================================
 // VERSION
 // ============================================================================
 
