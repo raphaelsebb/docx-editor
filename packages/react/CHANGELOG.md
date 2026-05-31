@@ -1,5 +1,11 @@
 # @eigenpal/docx-js-editor
 
+## 0.5.3
+
+### Patch Changes
+
+- d9c84f3: Deprecate `@eigenpal/docx-js-editor`. The package has been renamed to `@eigenpal/docx-editor-react`; this `0.x` line now receives critical fixes only. See the migration guide: https://www.docx-editor.dev/docs/latest/migration
+
 ## 0.5.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@eigenpal/docx-js-editor",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "DEPRECATED: renamed to @eigenpal/docx-editor-react. A browser-based DOCX editor. Migration guide: https://www.docx-editor.dev/docs/latest/migration",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
