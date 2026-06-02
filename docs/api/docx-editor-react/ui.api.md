@@ -1218,6 +1218,7 @@ export interface ToolbarProps {
         cssFloat: string | null;
     } | null;
     inline?: boolean;
+    onExportPdf?: () => void;
     onFormat?: (action: FormattingAction) => void;
     onImageTransform?: (action: 'rotateCW' | 'rotateCCW' | 'flipH' | 'flipV') => void;
     onImageWrapType?: (wrapType: string) => void;

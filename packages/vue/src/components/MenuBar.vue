@@ -3,7 +3,38 @@
      event; Insert > Table opens an inline grid picker and emits `insert-table`. -->
 <template>
   <div class="menu-bar" role="menubar">
-    <MenuDropdown :label="t('toolbar.file')" :items="fileItems" />
+    <MenuDropdown :label="t('toolbar.file')" :items="fileItems">
+      <template #submenu="{ item, closeMenu }">
+        <div v-if="item.key === 'export'" class="export-submenu">
+          <button
+            type="button"
+            class="export-submenu__item"
+            @mousedown.prevent
+            @click="
+              () => {
+                emit('action', 'exportDocx');
+                closeMenu();
+              }
+            "
+          >
+            {{ t('toolbar.exportDocx') }}
+          </button>
+          <button
+            type="button"
+            class="export-submenu__item"
+            @mousedown.prevent
+            @click="
+              () => {
+                emit('action', 'exportPdf');
+                closeMenu();
+              }
+            "
+          >
+            {{ t('toolbar.exportPdf') }}
+          </button>
+        </div>
+      </template>
+    </MenuDropdown>
     <MenuDropdown :label="t('toolbar.format')" :items="formatItems" />
     <MenuDropdown :label="t('toolbar.insert')" :items="insertItems">
       <template #submenu="{ item, closeMenu }">
@@ -52,6 +83,7 @@ const fileItems = computed<MenuEntry[]>(() => [
     shortcut: t('toolbar.saveShortcut'),
     onClick: act('save'),
   },
+  { icon: 'file_download', label: t('toolbar.export'), key: 'export', submenu: true },
   { type: 'separator' },
   { icon: 'settings', label: t('toolbar.pageSetup'), onClick: act('pageSetup') },
 ]);
@@ -78,5 +110,22 @@ const helpItems = computed<MenuEntry[]>(() => [
 .menu-bar {
   display: flex;
   align-items: center;
+}
+.export-submenu {
+  padding: 4px 0;
+  min-width: 180px;
+}
+.export-submenu__item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  text-align: left;
+  font-size: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.export-submenu__item:hover {
+  background: #f3f4f6;
 }
 </style>

@@ -178,6 +178,8 @@ export interface ToolbarProps {
   onOpen?: () => void;
   /** Callback to save/download the current DOCX (File → Save) */
   onSave?: () => void;
+  /** Callback to export the current document as PDF (File → Export → PDF) */
+  onExportPdf?: () => void;
   /** Whether to show zoom control (default: true) */
   showZoomControl?: boolean;
   /** Current zoom level (1.0 = 100%) */

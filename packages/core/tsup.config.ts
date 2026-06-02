@@ -36,6 +36,7 @@ export default defineConfig([
       'layout-engine/types': 'src/layout-engine/types.ts',
       'layout-painter/index': 'src/layout-painter/index.ts',
       'layout-painter/renderPage': 'src/layout-painter/renderPage.ts',
+      'pdf/index': 'src/pdf/index.ts',
       'layout-bridge/index': 'src/layout-bridge/index.ts',
       'layout-bridge/clickToPositionDom': 'src/layout-bridge/clickToPositionDom.ts',
       'layout-bridge/measuring/index': 'src/layout-bridge/measuring/index.ts',

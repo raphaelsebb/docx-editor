@@ -77,6 +77,7 @@ export function DocxEditorToolbar({
   onPrint,
   onOpen,
   onSave,
+  onExportPdf,
   onZoomChange,
   onRefocusEditor,
   onInsertTable,
@@ -120,6 +121,7 @@ export function DocxEditorToolbar({
   onPrint: () => void;
   onOpen: () => void;
   onSave: () => void | Promise<void>;
+  onExportPdf?: () => void;
   onZoomChange: (zoom: number) => void;
   onRefocusEditor: () => void;
   onInsertTable: (rows: number, columns: number) => void;
@@ -156,6 +158,7 @@ export function DocxEditorToolbar({
         onPrint={onPrint}
         onOpen={onOpen}
         onSave={onSave}
+        onExportPdf={onExportPdf}
         showZoomControl={showZoomControl}
         zoom={zoom}
         onZoomChange={onZoomChange}

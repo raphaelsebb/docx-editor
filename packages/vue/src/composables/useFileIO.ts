@@ -20,6 +20,8 @@ export interface UseFileIOOptions {
   getDocument: () => Document | null;
   /** From useDocxEditor — serializes the current state to a .docx Blob. */
   saveBlob: () => Promise<Blob | null>;
+  /** From useDocxEditor — exports the current document to a PDF Blob. */
+  exportPdf: () => Promise<Blob | null>;
   /** Fired after load+extract so the next tick sees comments/tracked-changes. */
   extractCommentsAndChanges: () => void;
   /** SFC's emit function — re-emits ready / rename / update:document / error. */
@@ -81,6 +83,19 @@ export function useFileIO(opts: UseFileIOOptions) {
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  /** File ▸ Export ▸ PDF — generate and download a .pdf. */
+  async function downloadCurrentPdf() {
+    const blob = await opts.exportPdf();
+    if (!blob) return;
+    const baseName = (opts.documentName() ?? '').trim() || 'document';
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = `${baseName.replace(/\.docx$/i, '')}.pdf`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
   async function loadDocumentBuffer(buffer: Parameters<typeof opts.loadBuffer>[0]) {
     await opts.loadBuffer(buffer);
     opts.emit('update:document', opts.getDocument());
@@ -103,6 +118,7 @@ export function useFileIO(opts: UseFileIOOptions) {
     handleDocxFileChange,
     handleDocumentNameChange,
     downloadCurrentDocument,
+    downloadCurrentPdf,
     emitReadyAfterSidebarStateRefresh,
     loadDocumentBuffer,
     loadDocument,

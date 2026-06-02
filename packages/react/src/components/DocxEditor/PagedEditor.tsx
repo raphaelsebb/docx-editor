@@ -29,6 +29,7 @@ import { DecorationLayer } from './overlays/DecorationLayer';
 
 // Layout engine
 import type { Layout } from '@eigenpal/docx-editor-core/layout-engine';
+import type { AdapterPdfExportContext } from '@eigenpal/docx-editor-core/pdf';
 
 // Layout bridge
 import { DEFAULT_PAGE_HEIGHT_PX } from '@eigenpal/docx-editor-core/layout-bridge';
@@ -215,6 +216,8 @@ export interface PagedEditorRef {
   setSelection(anchor: number, head?: number): void;
   /** Get current layout. */
   getLayout(): Layout | null;
+  /** Painter inputs (block lookup, header/footer content, page borders) for PDF export. */
+  getPdfExportContext(): AdapterPdfExportContext | null;
   /** Force re-layout. */
   relayout(): void;
   /** Scroll the visible pages to bring a PM position into view. */
@@ -309,6 +312,8 @@ const PagedEditorComponent = forwardRef<PagedEditorRef, PagedEditorProps>(
     // Refs
     const containerRef = useRef<HTMLDivElement>(null);
     const pagesContainerRef = useRef<HTMLDivElement>(null);
+    /** Painter inputs captured each layout, reused by File ▸ Export ▸ PDF / print. */
+    const pdfExportContextRef = useRef<AdapterPdfExportContext | null>(null);
     /** Viewport wrapper: sync minHeight/marginBottom in layout pipeline before scroll restore. */
     const viewportLayoutRef = useRef<HTMLDivElement>(null);
     const hiddenPMRef = useRef<HiddenProseMirrorRef>(null);
@@ -434,6 +439,7 @@ const PagedEditorComponent = forwardRef<PagedEditorRef, PagedEditorProps>(
       pagesContainerRef,
       viewportLayoutRef,
       hiddenPMRef,
+      pdfExportContextRef,
       syncCoordinator,
       getScrollContainer,
       onTotalPagesChange,
@@ -760,6 +766,7 @@ const PagedEditorComponent = forwardRef<PagedEditorRef, PagedEditorProps>(
       hiddenHfPMsRef,
       documentRef,
       layout,
+      pdfExportContextRef,
       runLayoutPipeline,
       scrollToPositionImpl,
       scrollToParaIdImpl,

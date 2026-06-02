@@ -4,67 +4,8 @@
 
 ```ts
 
-import { Node as Node_2 } from 'prosemirror-model';
-
-// @public
-export interface a {
-    // (undocumented)
-    block: FlowBlock;
-    // (undocumented)
-    measure: Measure;
-    // (undocumented)
-    version?: string;
-}
-
 // @public
 export function applyPageStyles(element: HTMLElement, width: number, height: number, options: RenderPageOptions): void;
-
-// @public
-export type B = Map<string, a>;
-
-// @public
-export const b: readonly e[];
-
-// @public (undocumented)
-export interface c {
-    imageEl: HTMLElement;
-    pos: number;
-}
-
-// @public
-export type d = 'inline' | 'squareLeft' | 'squareRight' | 'behind' | 'inFront';
-
-// @public (undocumented)
-export interface e {
-    choice: ImageLayoutTarget;
-    i18nDescKey: string;
-    i18nLabelKey: string;
-    iconHint: d;
-}
-
-// @public
-export const F: {
-    fragment: string;
-    paragraph: string;
-    table: string;
-    image: string;
-    line: string;
-    run: string;
-};
-
-// @public
-export class f {
-    constructor(options?: P);
-    getPageCount(): number;
-    getPageElement(index: number): HTMLElement | null;
-    mount(container: HTMLElement): void;
-    paint(layout: Layout): void;
-    // (undocumented)
-    resolvedCommentIds: Set<number>;
-    scrollToPage(pageNumber: number): void;
-    setBlockLookup(lookup: B): void;
-    unmount(): void;
-}
 
 // @public (undocumented)
 export function floatingImageIsBehindDoc(img: {
@@ -124,14 +65,6 @@ export interface FootnoteRenderItem {
 }
 
 // @public
-export const g: {
-    textBox: string;
-};
-
-// @public
-export function h(container: HTMLElement, focusedIds: Set<string>): void;
-
-// @public
 export interface HeaderFooterContent {
     blocks: FlowBlock[];
     height: number;
@@ -162,62 +95,10 @@ export interface HeaderFooterLayoutInfo {
 }
 
 // @public
-export const I: {
-    image: string;
-    imageAnchored: string;
-};
-
-// @public
-export function i(imageEl: HTMLElement, zoom?: number): {
-    horizontalEmu: number;
-    verticalEmu: number;
-} | undefined;
-
-// @public
 export function isFloatingImageRun(run: ImageRun): boolean;
 
 // @public
 export function isTextWrappingFloatingImageRun(run: ImageRun): boolean;
-
-// @public
-export function j(options?: P): f;
-
-// @public
-export function k(wrapType: WrapType, cssFloat?: ImageAttrs['cssFloat'] | null): ImageLayoutTarget | null;
-
-// @public
-export const L: {
-    readonly runImage: "layout-run-image";
-    readonly blockImage: "layout-block-image";
-    readonly pageFloatingImage: "layout-page-floating-image";
-    readonly cellFloatingImage: "layout-cell-floating-image";
-    readonly pageContent: "layout-page-content";
-    readonly paragraph: "layout-paragraph";
-};
-
-// @public
-export function l(doc: Node_2, from: number, to: number): Set<string>;
-
-// @public
-export function m(target: EventTarget | null): HTMLElement | null;
-
-// @public
-export function n(target: EventTarget | null): c | null;
-
-// @public
-export function o(_option: e, _currentWrapType: WrapType): boolean;
-
-// @public
-export interface P {
-    containerBackground?: string;
-    document?: Document;
-    pageBackground?: string;
-    pageGap?: number;
-    showShadow?: boolean;
-}
-
-// @public
-export function p(fragment: ImageFragment, block: ImageBlock, _measure: ImageMeasure, _context: RenderContext, options?: RenderImageFragmentOptions): HTMLElement;
 
 // @public
 export const PAGE_CLASS_NAMES: {
@@ -226,12 +107,6 @@ export const PAGE_CLASS_NAMES: {
     header: string;
     footer: string;
 };
-
-// @public
-export function q(block: ParagraphBlock, line: MeasuredLine, alignment: 'left' | 'center' | 'right' | 'justify' | undefined, doc: Document, options?: RenderLineOptions): HTMLElement;
-
-// @public
-export function r(fragment: Fragment, context: RenderContext, options?: RenderFragmentOptions): HTMLElement;
 
 // @public
 export function renderAllPagesNow(container: HTMLElement): number;
@@ -256,7 +131,7 @@ export function renderPage(page: Page, context: RenderContext, options?: RenderP
 // @public
 export interface RenderPageOptions {
     backgroundColor?: string;
-    blockLookup?: B;
+    blockLookup?: BlockLookup;
     document?: Document;
     firstPageFooterContent?: HeaderFooterContent;
     firstPageHeaderContent?: HeaderFooterContent;
@@ -296,32 +171,5 @@ export function resolveHeaderFooterFloatingTablePosition(floating: NonNullable<T
     left: number;
     top: number;
 };
-
-// @public
-export function s(fragment: ParagraphFragment, block: ParagraphBlock, measure: ParagraphMeasure, context: RenderContext, options?: RenderParagraphOptions): HTMLElement;
-
-// @public
-export const T: {
-    table: string;
-    row: string;
-    cell: string;
-    cellContent: string;
-    resizeHandle: string;
-    rowResizeHandle: string;
-    tableEdgeHandleBottom: string;
-    tableEdgeHandleRight: string;
-};
-
-// @public
-export function t(fragment: TableFragment, block: TableBlock, measure: TableMeasure, context: RenderContext, options?: RenderTableFragmentOptions): HTMLElement;
-
-// @public
-export function u(fragment: TextBoxFragment, block: TextBoxBlock, measure: TextBoxMeasure, context: RenderContext, options?: RenderTextBoxFragmentOptions): HTMLElement;
-
-// @public
-export function v(block: ParagraphBlock, line: MeasuredLine): Run[];
-
-// @public
-export function w(value: string): ImageLayoutTarget | undefined;
 
 ```

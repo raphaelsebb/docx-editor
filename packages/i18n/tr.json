@@ -41,7 +41,10 @@
     "tableOfContents": "İçindekiler tablosu",
     "symbol": "Sembol",
     "help": "Yardım",
-    "reportIssue": "Sorun bildir"
+    "reportIssue": "Sorun bildir",
+    "export": null,
+    "exportDocx": null,
+    "exportPdf": null
   },
   "formattingBar": {
     "groups": {

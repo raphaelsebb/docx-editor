@@ -41,7 +41,10 @@
     "open": "Abrir",
     "openShortcut": "Ctrl+O",
     "save": "Salvar",
-    "saveShortcut": "Ctrl+S"
+    "saveShortcut": "Ctrl+S",
+    "export": null,
+    "exportDocx": null,
+    "exportPdf": null
   },
   "formattingBar": {
     "groups": {

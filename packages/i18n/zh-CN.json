@@ -41,7 +41,10 @@
     "tableOfContents": "目录",
     "symbol": "符号",
     "help": "帮助",
-    "reportIssue": "反馈问题"
+    "reportIssue": "反馈问题",
+    "export": null,
+    "exportDocx": null,
+    "exportPdf": null
   },
   "formattingBar": {
     "groups": {

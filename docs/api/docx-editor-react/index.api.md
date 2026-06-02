@@ -4,6 +4,7 @@
 
 ```ts
 
+import { AdapterPdfExportContext } from '@eigenpal/docx-editor-core/pdf';
 import { Comment as Comment_2 } from '@eigenpal/docx-editor-core/types/content';
 import { ContentControlFilter } from '@eigenpal/docx-editor-core/agent';
 import { ContentControlValue } from '@eigenpal/docx-editor-core/agent';
@@ -139,6 +140,7 @@ export interface DocxEditorRef {
             };
         };
     }) => boolean;
+    exportPdf: () => Promise<Blob | null>;
     findInDocument: (query: string, options?: {
         caseSensitive?: boolean;
         limit?: number;

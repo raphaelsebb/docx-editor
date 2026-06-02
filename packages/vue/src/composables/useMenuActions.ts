@@ -29,6 +29,7 @@ export interface UseMenuActionsOptions {
   handleToggleOutline: () => void;
   handleToggleSidebar: () => void;
   downloadCurrentDocument: () => Promise<void>;
+  downloadCurrentPdf: () => Promise<void>;
   emit: (event: string, ...args: unknown[]) => void;
 }
 
@@ -61,6 +62,14 @@ export function useMenuActions(opts: UseMenuActionsOptions) {
       case 'save':
         opts.emit('menu-action', 'save');
         void opts.downloadCurrentDocument();
+        break;
+      case 'exportDocx':
+        opts.emit('menu-action', 'exportDocx');
+        void opts.downloadCurrentDocument();
+        break;
+      case 'exportPdf':
+        opts.emit('menu-action', 'exportPdf');
+        void opts.downloadCurrentPdf();
         break;
       case 'pageSetup':
         opts.showPageSetup.value = true;

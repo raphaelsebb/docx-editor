@@ -67,6 +67,7 @@
   "ref": {
     "comment": "DocxEditorRef parity. React's DocxEditorRef declares every member directly. Vue's DocxEditorRef intersects EditorRefLike (from @eigenpal/docx-editor-agents/bridge) plus its own additions — so members inherited via EditorRefLike are NOT enumerated in Vue's snapshot, but ARE callable at runtime. The contract uses three buckets: `paired` (explicit on both sides), `pairedViaInheritance` (explicit on React, inherited via EditorRefLike on Vue), and `vueExclusive` (only on Vue's DocxEditorRef).",
     "paired": [
+      "exportPdf",
       "focus",
       "getAgent",
       "getContentControls",

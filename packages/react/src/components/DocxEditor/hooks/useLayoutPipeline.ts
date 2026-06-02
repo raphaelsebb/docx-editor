@@ -45,6 +45,7 @@ import {
   type RenderPageOptions,
 } from '@eigenpal/docx-editor-core/layout-painter';
 import { findVerticalScrollParentOrRoot } from '@eigenpal/docx-editor-core/utils/findVerticalScrollParent';
+import type { AdapterPdfExportContext } from '@eigenpal/docx-editor-core/pdf';
 import type {
   Document,
   HeaderFooter,
@@ -99,6 +100,8 @@ export interface UseLayoutPipelineOptions {
   onTotalPagesChange?: (totalPages: number) => void;
   onAnchorPositionsChange?: (positions: Map<string, number>) => void;
   onRenderedDomContextReady?: (context: RenderedDomContext) => void;
+  /** Captured each render so the PDF exporter can reuse the painter's inputs. */
+  pdfExportContextRef?: React.MutableRefObject<AdapterPdfExportContext | null>;
 }
 
 export interface UseLayoutPipelineReturn {
@@ -130,6 +133,7 @@ export function useLayoutPipeline(opts: UseLayoutPipelineOptions): UseLayoutPipe
     pagesContainerRef,
     viewportLayoutRef,
     hiddenPMRef,
+    pdfExportContextRef,
     syncCoordinator,
     getScrollContainer,
     onTotalPagesChange,
@@ -416,6 +420,20 @@ export function useLayoutPipeline(opts: UseLayoutPipelineOptions): UseLayoutPipe
             }
           }
           painterRef.current.setBlockLookup(blockLookup);
+
+          // Capture the inputs the PDF exporter needs (same data the painter
+          // gets), so File ▸ Export ▸ PDF / print can reuse them without re-laying-out.
+          if (pdfExportContextRef) {
+            pdfExportContextRef.current = {
+              blockLookup,
+              header: headerContentForRender,
+              footer: footerContentForRender,
+              firstPageHeader: firstPageHeaderForRender,
+              firstPageFooter: firstPageFooterForRender,
+              titlePg: hasTitlePg,
+              pageBorders: sectionProperties?.pageBorders,
+            };
+          }
 
           const footnotesByPage = hasFootnotes
             ? buildFootnoteRenderItems(pageFootnoteMap, footnoteContentMap, document)

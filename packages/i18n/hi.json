@@ -41,7 +41,10 @@
     "tableOfContents": "विषय-सूची",
     "symbol": "प्रतीक",
     "help": "सहायता",
-    "reportIssue": "समस्या की रिपोर्ट करें"
+    "reportIssue": "समस्या की रिपोर्ट करें",
+    "export": null,
+    "exportDocx": null,
+    "exportPdf": null
   },
   "formattingBar": {
     "groups": {

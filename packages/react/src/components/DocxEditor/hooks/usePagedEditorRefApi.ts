@@ -17,6 +17,7 @@ import type { EditorState, Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 
 import type { Layout } from '@eigenpal/docx-editor-core/layout-engine';
+import type { AdapterPdfExportContext } from '@eigenpal/docx-editor-core/pdf';
 import type { Document, HeaderFooter } from '@eigenpal/docx-editor-core/types/document';
 
 import type { HiddenProseMirrorRef } from '../HiddenProseMirror';
@@ -29,6 +30,7 @@ interface RefApiInputs {
   /** Current document — needed to resolve `HeaderFooter` instance → `rId`. */
   documentRef: React.MutableRefObject<Document | null>;
   layout: Layout | null;
+  pdfExportContextRef: React.MutableRefObject<AdapterPdfExportContext | null>;
   runLayoutPipeline: (state: EditorState) => void;
   scrollToPositionImpl: (pmPos: number) => void;
   scrollToParaIdImpl: (paraId: string) => boolean;
@@ -65,6 +67,7 @@ function buildRefApi(inputs: RefApiInputs): PagedEditorRef {
     hiddenHfPMsRef,
     documentRef,
     layout,
+    pdfExportContextRef,
     runLayoutPipeline,
     scrollToPositionImpl,
     scrollToParaIdImpl,
@@ -90,6 +93,7 @@ function buildRefApi(inputs: RefApiInputs): PagedEditorRef {
     setSelection: (anchor: number, head?: number) =>
       hiddenPMRef.current?.setSelection(anchor, head),
     getLayout: () => layout,
+    getPdfExportContext: () => pdfExportContextRef.current,
     relayout: () => {
       const state = hiddenPMRef.current?.getState();
       if (state) runLayoutPipeline(state);
@@ -117,6 +121,7 @@ export function usePagedEditorRefApi(opts: UsePagedEditorRefApiOptions): void {
     hiddenHfPMsRef,
     documentRef,
     layout,
+    pdfExportContextRef,
     runLayoutPipeline,
     scrollToPositionImpl,
     scrollToParaIdImpl,
@@ -133,6 +138,7 @@ export function usePagedEditorRefApi(opts: UsePagedEditorRefApiOptions): void {
         hiddenHfPMsRef,
         documentRef,
         layout,
+        pdfExportContextRef,
         runLayoutPipeline,
         scrollToPositionImpl,
         scrollToParaIdImpl,
@@ -153,6 +159,7 @@ export function usePagedEditorRefApi(opts: UsePagedEditorRefApiOptions): void {
           hiddenHfPMsRef,
           documentRef,
           layout,
+          pdfExportContextRef,
           runLayoutPipeline,
           scrollToPositionImpl,
           scrollToParaIdImpl,

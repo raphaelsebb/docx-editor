@@ -118,6 +118,11 @@
       "import": "./dist/layout-painter/index.mjs",
       "require": "./dist/layout-painter/index.js"
     },
+    "./pdf": {
+      "types": "./dist/pdf/index.d.ts",
+      "import": "./dist/pdf/index.mjs",
+      "require": "./dist/pdf/index.js"
+    },
     "./layout-bridge": {
       "types": "./dist/layout-bridge/index.d.ts",
       "import": "./dist/layout-bridge/index.mjs",
@@ -379,6 +384,9 @@
       "layout-painter": [
         "./dist/layout-painter/index.d.ts"
       ],
+      "pdf": [
+        "./dist/pdf/index.d.ts"
+      ],
       "layout-bridge": [
         "./dist/layout-bridge/index.d.ts"
       ],
@@ -511,8 +519,10 @@
     "api:check": "node ../../scripts/api-extractor.mjs --package @eigenpal/docx-editor-core"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "docxtemplater": "^3.50.0",
     "jszip": "^3.10.1",
+    "pdf-lib": "^1.17.1",
     "pizzip": "^3.1.7",
     "xml-js": "^1.6.11"
   },

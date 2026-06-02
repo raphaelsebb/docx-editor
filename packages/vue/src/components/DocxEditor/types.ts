@@ -100,6 +100,8 @@ export type DocxEditorRef = EditorRefLike & {
   getAgent(): null;
   /** Save the document and return DOCX bytes, matching React's component ref. */
   save(): Promise<ArrayBuffer | null>;
+  /** Export the current document as a vector PDF `Blob` (selectable text, embedded fonts). */
+  exportPdf(): Promise<Blob | null>;
   /** Set zoom level (1.0 = 100%). */
   setZoom(zoom: number): void;
   /** Get current zoom level. */

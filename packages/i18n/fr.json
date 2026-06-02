@@ -41,7 +41,10 @@
     "tableOfContents": "Table des matières",
     "symbol": "Symbole",
     "help": "Aide",
-    "reportIssue": "Signaler un bug"
+    "reportIssue": "Signaler un bug",
+    "export": null,
+    "exportDocx": null,
+    "exportPdf": null
   },
   "formattingBar": {
     "groups": {

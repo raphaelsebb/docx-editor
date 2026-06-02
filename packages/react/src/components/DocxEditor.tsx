@@ -334,6 +334,8 @@ export interface DocxEditorRef {
   openPrintPreview: () => void;
   /** Print the document directly */
   print: () => void;
+  /** Export the current document as a vector PDF `Blob` (selectable text, embedded fonts). */
+  exportPdf: () => Promise<Blob | null>;
   /** Load a pre-parsed document programmatically */
   loadDocument: (doc: Document) => void;
   /** Load a DOCX buffer programmatically (ArrayBuffer, Uint8Array, Blob, or File) */
@@ -793,6 +795,8 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     handleSave,
     handleDirectPrint,
     handleDownloadDocument,
+    handleExportPdf,
+    handleDownloadPdf,
     handleOpenDocument,
     handleDocxFileChange,
     handleInsertImageClick,
@@ -1115,6 +1119,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     pagedEditorRef,
     handleSave,
     handleDirectPrint,
+    handleExportPdf,
     zoom: state.zoom,
     setZoom: (zoom: number) => setState((prev) => ({ ...prev, zoom })),
     scrollPageInfo,
@@ -1589,6 +1594,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
             onPrint={handleDirectPrint}
             onOpen={handleOpenDocument}
             onSave={handleDownloadDocument}
+            onExportPdf={handleDownloadPdf}
             onZoomChange={handleZoomChange}
             onRefocusEditor={focusActiveEditor}
             onInsertTable={handleInsertTable}

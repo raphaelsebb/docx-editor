@@ -78,6 +78,7 @@ import type {
 } from '@eigenpal/docx-editor-core/layout-engine/types';
 import type { BlockLookup, HeaderFooterContent } from '@eigenpal/docx-editor-core/layout-painter';
 import { enclosingSdtGroupIds, applySdtFocus } from '@eigenpal/docx-editor-core/layout-painter';
+import type { AdapterPdfExportContext } from '@eigenpal/docx-editor-core/pdf';
 import type { Document } from '@eigenpal/docx-editor-core/types/document';
 import type { LayoutSelectionGate } from '@eigenpal/docx-editor-core/prosemirror';
 
@@ -220,6 +221,8 @@ export interface UseDocxEditorReturn {
   loadDocument: (doc: Document) => void;
   /** Serialize the current document to a DOCX blob. */
   save: () => Promise<Blob | null>;
+  /** Export the current document as a vector PDF blob (selectable text, embedded fonts). */
+  exportPdf: () => Promise<Blob | null>;
   /** Focus the hidden ProseMirror view. */
   focus: () => void;
   /** Destroy the editor view and clean up listeners. */
@@ -286,6 +289,8 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
    * Mirrors React's pagedEditorRef.current.getLayout().
    */
   const layout = shallowRef<Layout | null>(null);
+  /** Painter inputs captured each layout, reused by exportPdf / print. */
+  const pdfExportContext = shallowRef<AdapterPdfExportContext | null>(null);
 
   // Use the singleton extension manager — same schema used by toProseDoc/commands
   const mgr = singletonManager;
@@ -480,6 +485,16 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
         titlePage: hasTitlePg,
         footnotesByPage,
       } as Parameters<typeof renderPages>[2]);
+
+      // Capture the painter inputs so exportPdf / print can reuse them.
+      pdfExportContext.value = {
+        blockLookup,
+        header: headerContent,
+        footer: footerContent,
+        firstPageHeader: firstPageHeaderContent,
+        firstPageFooter: firstPageFooterContent,
+        titlePg: hasTitlePg,
+      };
 
       // renderPages sets display:flex on the container — fix scrolling
       container.style.overflowY = 'auto';
@@ -864,6 +879,21 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
     });
   }
 
+  /**
+   * Export the current document as a vector PDF. Dynamically imports the
+   * exporter so pdf-lib/fontkit stay out of the main bundle. Returns null if
+   * the layout isn't ready.
+   */
+  async function exportPdf(): Promise<Blob | null> {
+    const currentLayout = layout.value;
+    const ctx = pdfExportContext.value;
+    if (!currentLayout || !ctx) return null;
+    const { exportToPdf, buildExportInput } = await import('@eigenpal/docx-editor-core/pdf');
+    return exportToPdf(
+      buildExportInput(currentLayout, ctx, { onWarning: (m) => console.warn('[pdf-export]', m) })
+    );
+  }
+
   function focus() {
     editorView.value?.focus();
   }
@@ -902,6 +932,7 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
     loadBuffer,
     loadDocument,
     save,
+    exportPdf,
     focus,
     destroy,
     getDocument,

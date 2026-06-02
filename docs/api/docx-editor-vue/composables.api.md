@@ -251,6 +251,7 @@ export interface UseDocxEditorReturn {
     destroy: () => void;
     editorState: ShallowRef<EditorState | null>;
     editorView: ShallowRef<EditorView | null>;
+    exportPdf: () => Promise<Blob | null>;
     focus: () => void;
     getCommands: () => CommandMap;
     getDocument: () => Document_2 | null;

@@ -58,6 +58,7 @@ export interface UseDocxEditorRefApiOptions {
   getDocument: () => Document | null;
   setZoom: (zoom: number) => void;
   save: () => Promise<ArrayBuffer | null>;
+  exportPdf: () => Promise<Blob | null>;
   loadDocument: (doc: Document) => void;
   loadDocumentBuffer: (buffer: DocxInput) => Promise<void>;
   addComment: (options: {
@@ -87,13 +88,31 @@ export interface UseDocxEditorRefApiOptions {
 export function useDocxEditorRefApi(opts: UseDocxEditorRefApiOptions): {
   exposed: DocxEditorRef;
 } {
-  function print() {
+  function printViaBrowser() {
     // Virtualization keeps off-screen pages as empty shells. Without this
     // they print as blank pages past the visible band (issue #579).
     const pagesEl = opts.pagesRef.value;
     if (pagesEl) renderAllPagesNow(pagesEl);
     opts.onPrint?.();
     window.print();
+  }
+
+  function print() {
+    // Preferred: print a self-contained vector PDF (no style loss). Fall back
+    // to the browser's window.print() if export isn't ready or fails.
+    void (async () => {
+      try {
+        const blob = await opts.exportPdf();
+        const { printPdfBlob } = await import('@eigenpal/docx-editor-core/pdf');
+        if (blob && printPdfBlob(blob)) {
+          opts.onPrint?.();
+          return;
+        }
+        printViaBrowser();
+      } catch {
+        printViaBrowser();
+      }
+    })();
   }
 
   function openPrintPreview() {
@@ -245,6 +264,7 @@ export function useDocxEditorRefApi(opts: UseDocxEditorRefApiOptions): {
   const exposed = {
     getAgent: () => null,
     save: opts.save,
+    exportPdf: opts.exportPdf,
     setZoom: opts.setZoom,
     getZoom,
     focus: opts.focus,

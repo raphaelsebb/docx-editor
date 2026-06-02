@@ -119,7 +119,41 @@ export function useFileIO({
     [agentRef, pagedEditorRef, comments, onSave, onError]
   );
 
-  const handleDirectPrint = useCallback(() => {
+  /**
+   * Generate a vector PDF from the current layout. Dynamically imports the
+   * exporter so pdf-lib/fontkit stay out of the editor's main bundle. Returns
+   * null if the layout isn't ready.
+   */
+  const handleExportPdf = useCallback(async (): Promise<Blob | null> => {
+    const layout = pagedEditorRef.current?.getLayout();
+    const ctx = pagedEditorRef.current?.getPdfExportContext();
+    if (!layout || !ctx) return null;
+    const { exportToPdf, buildExportInput } = await import('@eigenpal/docx-editor-core/pdf');
+    return exportToPdf(
+      buildExportInput(layout, ctx, {
+        documentName: documentName?.trim() || 'document',
+        onWarning: (m) => console.warn('[pdf-export]', m),
+      })
+    );
+  }, [pagedEditorRef, documentName]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    try {
+      const blob = await handleExportPdf();
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = `${(documentName?.trim() || 'document').replace(/\.docx$/i, '')}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (error) {
+      onError?.(error instanceof Error ? error : new Error('Failed to export PDF'));
+    }
+  }, [handleExportPdf, documentName, onError]);
+
+  /** Legacy fallback: clone the painted pages into a print window. */
+  const printViaDomClone = useCallback(() => {
     // Find the pages container and clone its content into a clean print window
     const pagesEl = containerRef.current?.querySelector('.paged-editor__pages');
     if (!pagesEl) {
@@ -192,6 +226,23 @@ body { background: white; }
 
     onPrint?.();
   }, [containerRef, onPrint]);
+
+  const handleDirectPrint = useCallback(() => {
+    // Preferred path: print a self-contained vector PDF (no DOM-clone style loss).
+    void (async () => {
+      try {
+        const blob = await handleExportPdf();
+        const { printPdfBlob } = await import('@eigenpal/docx-editor-core/pdf');
+        if (blob && printPdfBlob(blob)) {
+          onPrint?.();
+          return;
+        }
+        printViaDomClone();
+      } catch {
+        printViaDomClone();
+      }
+    })();
+  }, [handleExportPdf, printViaDomClone, onPrint]);
 
   const handleDownloadDocument = useCallback(async () => {
     const buffer = await handleSave();
@@ -288,6 +339,8 @@ body { background: white; }
     handleSave,
     handleDirectPrint,
     handleDownloadDocument,
+    handleExportPdf,
+    handleDownloadPdf,
     handleOpenDocument,
     handleDocxFileChange,
     handleInsertImageClick,

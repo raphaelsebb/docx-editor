@@ -79,6 +79,7 @@ export interface DocxEditorProps {
 export type DocxEditorRef = EditorRefLike & {
     getAgent(): null;
     save(): Promise<ArrayBuffer | null>;
+    exportPdf(): Promise<Blob | null>;
     setZoom(zoom: number): void;
     getZoom(): number;
     focus(): void;

@@ -116,6 +116,7 @@ export function MenuBar() {
     onPrint,
     onOpen,
     onSave,
+    onExportPdf,
     onPageSetup,
     onInsertImage,
     onInsertTable,
@@ -145,7 +146,8 @@ export function MenuBar() {
   );
 
   const hasPrintOrPageSetup = !!onPrint || !!onPageSetup;
-  const hasFileMenu = hasPrintOrPageSetup || onOpen || onSave;
+  const hasExport = !!onSave || !!onExportPdf;
+  const hasFileMenu = hasPrintOrPageSetup || onOpen || hasExport;
 
   return (
     <div className="flex items-center" role="menubar" aria-label={t('titleBar.menuBarAriaLabel')}>
@@ -175,7 +177,45 @@ export function MenuBar() {
                   } as MenuEntry,
                 ]
               : []),
-            ...((onOpen || onSave) && hasPrintOrPageSetup
+            ...(hasExport
+              ? [
+                  {
+                    icon: 'file_download',
+                    label: t('toolbar.export'),
+                    submenuContent: (closeMenu: () => void) => (
+                      <div className="py-1">
+                        {onSave && (
+                          <button
+                            type="button"
+                            className="ep-menu-item flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              onSave();
+                              closeMenu();
+                            }}
+                          >
+                            {t('toolbar.exportDocx')}
+                          </button>
+                        )}
+                        {onExportPdf && (
+                          <button
+                            type="button"
+                            className="ep-menu-item flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              onExportPdf();
+                              closeMenu();
+                            }}
+                          >
+                            {t('toolbar.exportPdf')}
+                          </button>
+                        )}
+                      </div>
+                    ),
+                  } as MenuEntry,
+                ]
+              : []),
+            ...((onOpen || hasExport) && hasPrintOrPageSetup
               ? [{ type: 'separator' as const } as MenuEntry]
               : []),
             ...(onPrint
