@@ -40,7 +40,12 @@ import { parseNumbering, type NumberingMap } from './numberingParser';
 import { parseSettings } from './settingsParser';
 import { parseDocumentBody, extractAllTemplateVariables } from './documentParser';
 import { parseHeader, parseFooter } from './headerFooterParser';
-import { parseFootnotes, parseEndnotes } from './footnoteParser';
+import {
+  parseFootnotes,
+  parseEndnotes,
+  isSeparatorFootnote,
+  isSeparatorEndnote,
+} from './footnoteParser';
 import { parseComments } from './commentParser';
 import { loadFontsWithMapping } from '../utils/fontLoader';
 import { type DocxInput, toArrayBuffer } from '../utils/docxInput';
@@ -212,6 +217,8 @@ export async function parseDocx(input: DocxInput, options: ParseOptions = {}): P
     // ========================================================================
     let footnotes: Footnote[] | undefined;
     let endnotes: Endnote[] | undefined;
+    let footnoteSeparators: Footnote[] | undefined;
+    let endnoteSeparators: Endnote[] | undefined;
 
     if (parseNotes) {
       onProgress('Parsing footnotes/endnotes...', 65);
@@ -220,6 +227,8 @@ export async function parseDocx(input: DocxInput, options: ParseOptions = {}): P
       );
       footnotes = notes.footnotes;
       endnotes = notes.endnotes;
+      footnoteSeparators = notes.footnoteSeparators;
+      endnoteSeparators = notes.endnoteSeparators;
       onProgress('Parsed footnotes/endnotes', 75);
     } else {
       onProgress('Skipping footnotes/endnotes', 75);
@@ -285,6 +294,8 @@ export async function parseDocx(input: DocxInput, options: ParseOptions = {}): P
       footers,
       footnotes,
       endnotes,
+      footnoteSeparators,
+      endnoteSeparators,
       relationships: rels,
       media,
     };
@@ -455,7 +466,12 @@ function parseNotesContent(
   numbering: NumberingMap | null,
   rels: RelationshipMap,
   media: Map<string, MediaFile>
-): { footnotes: Footnote[]; endnotes: Endnote[] } {
+): {
+  footnotes: Footnote[];
+  endnotes: Endnote[];
+  footnoteSeparators: Footnote[];
+  endnoteSeparators: Endnote[];
+} {
   const footnoteMap = parseFootnotes(raw.footnotesXml, styles, theme, numbering, rels, media);
 
   const endnoteMap = parseEndnotes(raw.endnotesXml, styles, theme, numbering, rels, media);
@@ -463,6 +479,10 @@ function parseNotesContent(
   return {
     footnotes: footnoteMap.getNormalFootnotes(),
     endnotes: endnoteMap.getNormalEndnotes(),
+    // Separator/continuation notes are kept aside (not rendered) so the
+    // serializer can re-emit them ahead of the normal notes on save.
+    footnoteSeparators: footnoteMap.footnotes.filter(isSeparatorFootnote),
+    endnoteSeparators: endnoteMap.endnotes.filter(isSeparatorEndnote),
   };
 }
 

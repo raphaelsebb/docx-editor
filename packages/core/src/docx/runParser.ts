@@ -26,6 +26,8 @@ import type {
   BreakContent,
   SymbolContent,
   NoteReferenceContent,
+  NoteRefMarkContent,
+  SeparatorContent,
   FieldCharContent,
   InstrTextContent,
   SoftHyphenContent,
@@ -678,14 +680,24 @@ function parseRunContents(
       }
 
       case 'footnoteRef':
+        // The auto-number mark inside a footnote body (distinct from the
+        // w:footnoteReference placed in the document body).
+        contents.push({ type: 'footnoteRefMark' } as NoteRefMarkContent);
+        break;
+
       case 'endnoteRef':
-        // These are the actual footnote/endnote content markers (different from Reference)
-        // They appear in the footnote/endnote text itself
+        // The auto-number mark inside an endnote body.
+        contents.push({ type: 'endnoteRefMark' } as NoteRefMarkContent);
         break;
 
       case 'separator':
+        // Horizontal rule in the separator note.
+        contents.push({ type: 'separator' } as SeparatorContent);
+        break;
+
       case 'continuationSeparator':
-        // Footnote/endnote separators
+        // Horizontal rule in the continuation-separator note.
+        contents.push({ type: 'continuationSeparator' } as SeparatorContent);
         break;
 
       default:

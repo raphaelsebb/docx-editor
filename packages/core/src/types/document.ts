@@ -59,6 +59,8 @@ export type {
   BreakContent,
   SymbolContent,
   NoteReferenceContent,
+  NoteRefMarkContent,
+  SeparatorContent,
   FieldCharContent,
   InstrTextContent,
   SoftHyphenContent,
@@ -186,10 +188,20 @@ export interface DocxPackage {
   settings?: DocumentSettings;
   /** Font table */
   fontTable?: FontTable;
-  /** Footnotes */
+  /** Footnotes (normal notes only — separators live in `footnoteSeparators`) */
   footnotes?: Footnote[];
-  /** Endnotes */
+  /** Endnotes (normal notes only — separators live in `endnoteSeparators`) */
   endnotes?: Endnote[];
+  /**
+   * Separator footnotes (`w:type="separator"` / `"continuationSeparator"` /
+   * `"continuationNotice"`) kept out of `footnotes` so rendering/layout only
+   * sees real notes. Retained for round-trip: Word rejects a footnotes part
+   * whose separator notes are missing, so the serializer re-emits these ahead
+   * of the normal notes.
+   */
+  footnoteSeparators?: Footnote[];
+  /** Separator endnotes — see `footnoteSeparators`. */
+  endnoteSeparators?: Endnote[];
   /** Headers by relationship ID */
   headers?: Map<string, HeaderFooter>;
   /** Footers by relationship ID */

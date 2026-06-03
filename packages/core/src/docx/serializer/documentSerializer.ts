@@ -576,9 +576,14 @@ export function serializeSectionProperties(props: SectionProperties | undefined)
 // ============================================================================
 
 /**
- * Serialize a single block content item (paragraph or table)
+ * Serialize a single block content item (paragraph, table, or block SDT).
+ *
+ * Exported so the footnote/endnote serializer can reuse the exact same
+ * block-level emission the document body uses — preserving tracked-change
+ * wrappers (`w:ins`/`w:del`), paragraph/run properties, fields, and tables
+ * inside note bodies instead of reimplementing a minimal serializer.
  */
-function serializeBlockContent(block: BlockContent): string {
+export function serializeBlockContent(block: BlockContent): string {
   if (block.type === 'paragraph') {
     return serializeParagraph(block);
   } else if (block.type === 'table') {

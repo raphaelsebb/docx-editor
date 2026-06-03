@@ -88,6 +88,15 @@ export interface Footnote {
    * (toProseDoc → toFlowBlocks) can render them uniformly.
    */
   content: BlockContent[];
+  /**
+   * Verbatim original XML of the entire `<w:footnote>` element, captured at
+   * parse time ONLY when the note body carries a block-level construct the
+   * note parser doesn't model (block-level `w:sdt`, bookmarks, `w:customXml`).
+   * When present the serializer re-emits these bytes instead of rebuilding
+   * from `content`, restoring pre-#646 fidelity for unmodeled constructs.
+   * See `parseNoteBlockContent` / `serializeNote` for the gate (#646 F3).
+   */
+  verbatimXml?: string;
 }
 
 /**
@@ -104,4 +113,6 @@ export interface Endnote {
    * the body — paragraphs and tables. See note on `Footnote.content`.
    */
   content: BlockContent[];
+  /** Verbatim original XML — see `Footnote.verbatimXml` (#646 F3). */
+  verbatimXml?: string;
 }

@@ -61,6 +61,31 @@ export interface NoteReferenceContent {
 }
 
 /**
+ * Footnote/endnote auto-number mark (`w:footnoteRef` / `w:endnoteRef`).
+ *
+ * Distinct from {@link NoteReferenceContent}: that is the *reference* placed in
+ * the document body (`w:footnoteReference`), whereas this is the numbering
+ * placeholder that lives *inside* the note body — the run carrying it is what
+ * Word renders as the note's leading superscript number. Preserving it keeps
+ * the note's own number visible on round-trip.
+ */
+export interface NoteRefMarkContent {
+  type: 'footnoteRefMark' | 'endnoteRefMark';
+}
+
+/**
+ * Footnote/endnote separator mark (`w:separator` / `w:continuationSeparator`).
+ *
+ * These appear inside the special separator notes (`w:type="separator"` and
+ * `w:type="continuationSeparator"`) and draw the horizontal rule Word places
+ * between the body and its notes. They carry no content; Word rejects a notes
+ * part whose separator notes have lost these markers, so they must round-trip.
+ */
+export interface SeparatorContent {
+  type: 'separator' | 'continuationSeparator';
+}
+
+/**
  * Field character (begin/separate/end)
  */
 export interface FieldCharContent {
@@ -123,6 +148,8 @@ export type RunContent =
   | BreakContent
   | SymbolContent
   | NoteReferenceContent
+  | NoteRefMarkContent
+  | SeparatorContent
   | FieldCharContent
   | InstrTextContent
   | SoftHyphenContent

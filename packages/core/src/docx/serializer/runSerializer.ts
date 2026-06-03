@@ -535,6 +535,14 @@ function serializeRunContent(content: RunContent): string {
     case 'footnoteRef':
     case 'endnoteRef':
       return serializeNoteReference(content);
+    case 'footnoteRefMark':
+      return '<w:footnoteRef/>';
+    case 'endnoteRefMark':
+      return '<w:endnoteRef/>';
+    case 'separator':
+      return '<w:separator/>';
+    case 'continuationSeparator':
+      return '<w:continuationSeparator/>';
     case 'fieldChar':
       return serializeFieldChar(content);
     case 'instrText':

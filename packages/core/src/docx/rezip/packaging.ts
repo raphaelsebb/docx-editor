@@ -17,6 +17,7 @@ import {
   serializeCommentsIds,
   serializeCommentsExtensible,
 } from '../serializer/commentSerializer';
+import { serializeFootnotes, serializeEndnotes } from '../serializer/noteSerializer';
 import { RELATIONSHIP_TYPES } from '../relsParser';
 import { findMaxRId, readRelsOrStub, headerFooterFilename } from './parts';
 
@@ -238,6 +239,42 @@ export async function serializeCommentsToZip(
   }
 
   await ensureAllCommentParts(zip, compressionLevel);
+}
+
+/**
+ * Serialize footnotes into `word/footnotes.xml`.
+ *
+ * Re-emits separator notes (kept in `footnoteSeparators`) ahead of the normal
+ * notes, mirroring Word's ordering. Only writes when the document actually has
+ * footnotes; otherwise the original part is left untouched. Content-type / rels
+ * registration is skipped on purpose — a document that carries footnotes
+ * already declares the part, and notes-from-scratch is out of scope here.
+ */
+export function serializeFootnotesToZip(doc: Document, zip: JSZip, compressionLevel: number): void {
+  const normal = doc.package.footnotes ?? [];
+  const separators = doc.package.footnoteSeparators ?? [];
+  if (normal.length === 0 && separators.length === 0) return;
+
+  const xml = serializeFootnotes([...separators, ...normal]);
+  zip.file('word/footnotes.xml', xml, {
+    compression: 'DEFLATE',
+    compressionOptions: { level: compressionLevel },
+  });
+}
+
+/**
+ * Serialize endnotes into `word/endnotes.xml`. See {@link serializeFootnotesToZip}.
+ */
+export function serializeEndnotesToZip(doc: Document, zip: JSZip, compressionLevel: number): void {
+  const normal = doc.package.endnotes ?? [];
+  const separators = doc.package.endnoteSeparators ?? [];
+  if (normal.length === 0 && separators.length === 0) return;
+
+  const xml = serializeEndnotes([...separators, ...normal]);
+  zip.file('word/endnotes.xml', xml, {
+    compression: 'DEFLATE',
+    compressionOptions: { level: compressionLevel },
+  });
 }
 
 /**
