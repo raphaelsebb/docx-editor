@@ -6,6 +6,7 @@
 
 import { EditorState } from 'prosemirror-state';
 import { Node as Node_2 } from 'prosemirror-model';
+import { Transaction } from 'prosemirror-state';
 
 // @public
 export function computeLayout(inputs: ComputeLayoutInputs): LayoutComputation;
@@ -93,6 +94,9 @@ export interface LayoutScheduler {
 
 // @public
 export type MeasureBlocksFn = (blocks: FlowBlock[], contentWidth: number | number[], pageGeometry?: FloatPageGeometry) => Measure[];
+
+// @public
+export function stripScrollFlag(transaction: Transaction, probeTr: Transaction): void;
 
 // (No @packageDocumentation comment for this package)
 

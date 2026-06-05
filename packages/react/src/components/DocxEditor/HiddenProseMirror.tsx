@@ -33,41 +33,12 @@ import { schema, createDocumentStylesPlugin } from '@eigenpal/docx-editor-core/p
 import { toProseDoc, createEmptyDoc } from '@eigenpal/docx-editor-core/prosemirror/conversion';
 import { fromProseDoc } from '@eigenpal/docx-editor-core/prosemirror/conversion';
 import type { ExtensionManager } from '@eigenpal/docx-editor-core/prosemirror/extensions';
+import { stripScrollFlag } from '@eigenpal/docx-editor-core/editor';
 import type { Document, Theme, StyleDefinitions } from '@eigenpal/docx-editor-core/types/document';
 
 // Import ProseMirror CSS
 import 'prosemirror-view/style/prosemirror.css';
 import '@eigenpal/docx-editor-core/prosemirror/editor.css';
-
-/**
- * `Transaction.updated` is an internal bitfield in `prosemirror-state` whose
- * `UPDATED_SCROLL` flag is not exported. Bit value is 4 in current PM
- * (state/src/transaction.ts). We strip it because the paginated layer owns
- * scroll — without this PM's `updateState` would force-scroll our hidden
- * off-screen view's ancestors.
- *
- * If a future PM release adds new flag bits before SCROLL, this constant
- * goes stale silently. The `assertScrollFlagShape()` runtime check below
- * is a one-shot canary: it dispatches a synthetic scrollIntoView() tr and
- * asserts the bit shape matches expectations. Failures get logged once.
- */
-const PM_UPDATED_SCROLL = 4;
-let pmScrollFlagAsserted = false;
-function assertScrollFlagShape(emptyTr: Transaction): void {
-  if (pmScrollFlagAsserted) return;
-  pmScrollFlagAsserted = true;
-  try {
-    const probe = emptyTr.scrollIntoView() as unknown as { updated?: number };
-    if (typeof probe.updated !== 'number' || (probe.updated & PM_UPDATED_SCROLL) === 0) {
-      console.warn(
-        '[HiddenProseMirror] prosemirror-state UPDATED_SCROLL bit shape changed; ' +
-          'paginated scroll suppression may be stale. Update PM_UPDATED_SCROLL.'
-      );
-    }
-  } catch {
-    // Probe failed (e.g. PM mocked in tests) — skip silently.
-  }
-}
 
 // ============================================================================
 // TYPES
@@ -306,16 +277,9 @@ const HiddenProseMirrorComponent = forwardRef<HiddenProseMirrorRef, HiddenProseM
           if (!viewRef.current) viewRef.current = this;
 
           // Paginated layer owns scroll; strip PM scroll flag so updateState does not
-          // use scroll-to-selection / preserve-path ancestor scroll correction on our scroller.
-          // Probe a fresh tr (this.state.tr is a getter — doesn't mutate state) once
-          // to verify the PM internal flag shape still matches PM_UPDATED_SCROLL.
-          assertScrollFlagShape(this.state.tr);
-          // `updated` is `private` on PM's Transaction, so a plain intersection
-          // collapses to `never`. The double-cast is the documented escape hatch.
-          const trWithUpdated = transaction as unknown as { updated?: number };
-          if (typeof trWithUpdated.updated === 'number') {
-            trWithUpdated.updated &= ~PM_UPDATED_SCROLL;
-          }
+          // use scroll-to-selection / preserve-path ancestor scroll correction on our
+          // scroller. Probe a fresh tr (this.state.tr is a getter — doesn't mutate state).
+          stripScrollFlag(transaction, this.state.tr);
 
           const newState = this.state.apply(transaction);
           this.updateState(newState);

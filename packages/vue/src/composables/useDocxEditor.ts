@@ -54,7 +54,11 @@ import {
   getColumns,
   resolveHeaderFooter,
 } from '@eigenpal/docx-editor-core/layout-bridge';
-import { computeLayout, createLayoutScheduler } from '@eigenpal/docx-editor-core/editor';
+import {
+  computeLayout,
+  createLayoutScheduler,
+  stripScrollFlag,
+} from '@eigenpal/docx-editor-core/editor';
 import {
   DEFAULT_TEXTBOX_MARGINS,
   DEFAULT_TEXTBOX_WIDTH,
@@ -451,6 +455,9 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
       editable: () => !unref(readOnly),
       dispatchTransaction(transaction: Transaction) {
         if (!view) return;
+        // Paginated painter owns scroll; strip PM's scroll flag so updateState
+        // doesn't yank this hidden off-screen view's ancestors to the caret.
+        stripScrollFlag(transaction, view.state.tr);
         const newState = view.state.apply(transaction);
         view.updateState(newState);
         editorState.value = newState;
