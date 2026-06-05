@@ -58,7 +58,11 @@ import type {
 import type { HiddenProseMirrorRef } from '../HiddenProseMirror';
 import type { LayoutSelectionGate } from '../internals/LayoutSelectionGate';
 import { computeAnchorPositions } from '../internals/sidebarAnchorPositions';
-import { computePerBlockWidths, getColumns, twipsToPixels } from '../internals/columnLayout';
+import {
+  computePerBlockWidths,
+  getColumns,
+  twipsToPixels,
+} from '@eigenpal/docx-editor-core/layout-bridge';
 import { measureBlocks } from '../internals/measureBlock';
 import { createRenderedDomContext } from '../../../plugin-api/RenderedDomContext';
 import type { RenderedDomContext } from '../../../plugin-api/types';
