@@ -25,7 +25,11 @@ import {
   type FootnoteRenderItem,
   type RenderPageOptions,
 } from '@eigenpal/docx-editor-core/layout-painter';
-import { computeLayout } from '@eigenpal/docx-editor-core/editor';
+import {
+  computeLayout,
+  createLayoutScheduler,
+  type LayoutScheduler,
+} from '@eigenpal/docx-editor-core/editor';
 import { findVerticalScrollParentOrRoot } from '@eigenpal/docx-editor-core/utils/findVerticalScrollParent';
 import type {
   Document,
@@ -412,39 +416,26 @@ export function useLayoutPipeline(opts: UseLayoutPipelineOptions): UseLayoutPipe
 
   /**
    * Multiple rapid transactions (e.g. typing "hello") within the same frame
-   * are coalesced so only the final state triggers a full layout pass.
+   * are coalesced so only the final state triggers a full layout pass. The
+   * coalescer lives in core (`createLayoutScheduler`) so React and Vue share
+   * it; the `runRef` indirection lets the stable scheduler always call the
+   * latest `runLayoutPipeline` without recreating itself.
    */
-  const pendingLayoutRef = useRef<{
-    rafId: number;
-    state: EditorState;
-  } | null>(null);
+  const runRef = useRef(runLayoutPipeline);
+  runRef.current = runLayoutPipeline;
+  const schedulerRef = useRef<LayoutScheduler | null>(null);
+  if (!schedulerRef.current) {
+    schedulerRef.current = createLayoutScheduler((state) => runRef.current(state));
+  }
 
-  const scheduleLayout = useCallback(
-    (state: EditorState) => {
-      if (pendingLayoutRef.current) {
-        pendingLayoutRef.current.state = state;
-        return;
-      }
-      const rafId = requestAnimationFrame(() => {
-        const pending = pendingLayoutRef.current;
-        pendingLayoutRef.current = null;
-        if (pending) {
-          runLayoutPipeline(pending.state);
-        }
-      });
-      pendingLayoutRef.current = { rafId, state };
-    },
-    [runLayoutPipeline]
-  );
+  const scheduleLayout = useCallback((state: EditorState) => {
+    schedulerRef.current!.schedule(state);
+  }, []);
 
   // Clean up pending rAF on unmount
   useEffect(() => {
-    return () => {
-      if (pendingLayoutRef.current) {
-        cancelAnimationFrame(pendingLayoutRef.current.rafId);
-        pendingLayoutRef.current = null;
-      }
-    };
+    const scheduler = schedulerRef.current;
+    return () => scheduler?.cancel();
   }, []);
 
   return {

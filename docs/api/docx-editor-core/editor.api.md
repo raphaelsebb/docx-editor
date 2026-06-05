@@ -53,6 +53,9 @@ export interface ComputeLayoutInputs {
 }
 
 // @public (undocumented)
+export function createLayoutScheduler(run: (state: EditorState) => void, scheduleFrame?: (cb: () => void) => number, cancelFrame?: (handle: number) => void): LayoutScheduler;
+
+// @public (undocumented)
 export interface LayoutComputation {
     // (undocumented)
     blocks: FlowBlock[];
@@ -80,6 +83,12 @@ export interface LayoutComputation {
     pageBorders: SectionProperties['pageBorders'] | undefined;
     // (undocumented)
     watermark: Watermark | undefined;
+}
+
+// @public
+export interface LayoutScheduler {
+    cancel(): void;
+    schedule(state: EditorState): void;
 }
 
 // @public

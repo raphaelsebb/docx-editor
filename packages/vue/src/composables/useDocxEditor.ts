@@ -54,7 +54,7 @@ import {
   getColumns,
   resolveHeaderFooter,
 } from '@eigenpal/docx-editor-core/layout-bridge';
-import { computeLayout } from '@eigenpal/docx-editor-core/editor';
+import { computeLayout, createLayoutScheduler } from '@eigenpal/docx-editor-core/editor';
 import {
   DEFAULT_TEXTBOX_MARGINS,
   DEFAULT_TEXTBOX_WIDTH,
@@ -406,6 +406,11 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
     }
   }
 
+  // rAF-coalescing layout scheduler (shared with React via core). Body
+  // doc-change transactions schedule through this so a burst of keystrokes
+  // lays out once per frame instead of synchronously per keystroke.
+  const layoutScheduler = createLayoutScheduler(runLayoutPipeline);
+
   // ========================================================================
   // ProseMirror setup
   // ========================================================================
@@ -451,10 +456,12 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
         editorState.value = newState;
 
         // Snapshot marks at cursor for reactive toolbar state.
-        // Re-layout on doc changes
+        // Re-layout on doc changes — coalesced through the shared core
+        // scheduler so a burst of keystrokes lays out once per frame (the
+        // selection overlay waits via `syncCoordinator`, matching React).
         if (transaction.docChanged) {
           syncCoordinator?.incrementStateSeq();
-          runLayoutPipeline(newState);
+          layoutScheduler.schedule(newState);
           // Notify parent about document change
           try {
             if (document.value) {
@@ -773,6 +780,7 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
   }
 
   function destroy() {
+    layoutScheduler.cancel();
     destroyEditorView();
     destroyHfPMs();
     document.value = null;
