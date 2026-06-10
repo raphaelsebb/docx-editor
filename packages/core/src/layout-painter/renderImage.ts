@@ -132,6 +132,16 @@ export function renderImageFragment(
     containerEl.dataset.pmEnd = String(fragment.pmEnd);
   }
 
+  // Windows metafile (WMF/EMF) the browser can't decode: show a labeled
+  // placeholder instead of a broken/white <img> (#743, #755). Metafiles are
+  // normally rendered to SVG at load; this catches any left unconverted
+  // (headless parse with no DOM, or a render failure).
+  const metafileKind = metafilePlaceholderKind(block.src);
+  if (metafileKind) {
+    containerEl.appendChild(buildMetafilePlaceholder(doc, metafileKind));
+    return containerEl;
+  }
+
   // Create the actual image element
   const imgEl = doc.createElement('img');
   imgEl.src = block.src;
@@ -167,4 +177,62 @@ export function renderImageFragment(
   }
 
   return containerEl;
+}
+
+/**
+ * Identify a `src` that still points at a Windows metafile the browser can't
+ * render — `data:image/x-wmf` / `image/x-emf` (and their non-`x-` variants).
+ * Returns `'WMF'` / `'EMF'` for the placeholder label, else `null`. Shared by
+ * the block (this file) and inline (`renderParagraph/runs`) image paths.
+ */
+export function metafilePlaceholderKind(src: string | undefined): 'WMF' | 'EMF' | null {
+  if (!src) return null;
+  const head = src.slice(0, 32).toLowerCase();
+  if (head.startsWith('data:image/x-wmf') || head.startsWith('data:image/wmf')) return 'WMF';
+  if (head.startsWith('data:image/x-emf') || head.startsWith('data:image/emf')) return 'EMF';
+  return null;
+}
+
+/**
+ * A placeholder for a metafile that can't be displayed — a dashed frame
+ * labeled with the format identifier (`WMF`/`EMF`) so users see that content
+ * exists rather than a blank/broken box (#743, #755). The label is the format
+ * acronym only (a universal identifier like `PNG`/`PDF`, not translatable
+ * prose), so the painter — which has no i18n — stays locale-neutral; the
+ * acronym is hidden on boxes too small to fit it. Pass `width`/`height` (px)
+ * for an inline run; omit them to fill a sized block container. Inline styles
+ * because painter output isn't covered by the editor's scoped Tailwind.
+ */
+export function buildMetafilePlaceholder(
+  doc: Document,
+  kind: 'WMF' | 'EMF',
+  opts: { width?: number; height?: number } = {}
+): HTMLElement {
+  const el = doc.createElement('div');
+  el.className = `${IMAGE_CLASS_NAMES.image}-metafile-placeholder`;
+  el.dataset.metafileKind = kind;
+  el.title = kind;
+  const sized = opts.width !== undefined && opts.height !== undefined;
+  // Only show the acronym when the box is large enough to fit it; otherwise the
+  // dashed frame alone marks the spot (tiny inline icons would just clip text).
+  const fitsLabel = !sized || ((opts.width ?? 0) >= 44 && (opts.height ?? 0) >= 16);
+  if (fitsLabel) el.textContent = kind;
+  Object.assign(el.style, {
+    width: sized ? `${opts.width}px` : '100%',
+    height: sized ? `${opts.height}px` : '100%',
+    boxSizing: 'border-box',
+    display: sized ? 'inline-flex' : 'flex',
+    verticalAlign: sized ? 'middle' : '',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px dashed #9ca3af',
+    background: '#f3f4f6',
+    color: '#6b7280',
+    font: '11px system-ui, sans-serif',
+    letterSpacing: '0.05em',
+    textAlign: 'center',
+    overflow: 'hidden',
+    userSelect: 'none',
+  } as Partial<CSSStyleDeclaration>);
+  return el;
 }

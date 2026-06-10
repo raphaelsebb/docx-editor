@@ -765,6 +765,7 @@ interface Image_2 {
     alt?: string;
     crop?: ImageCrop;
     decorative?: boolean;
+    displaySrc?: string;
     effects?: {
         brightness?: number;
         contrast?: number;

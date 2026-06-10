@@ -13,6 +13,7 @@ import type JSZip from 'jszip';
 import type { BlockContent, Image } from '../../types/content';
 import type { Document } from '../../types/document';
 import { RELATIONSHIP_TYPES } from '../relsParser';
+import { isUnrenderableMetafileSrc } from '../metafileConversion';
 import { findMaxRId, readRelsOrStub, headerFooterFilename, type Part } from './parts';
 
 /**
@@ -49,7 +50,15 @@ function collectNewImages(blocks: BlockContent[]): Image[] {
 
   const collectFromRun = (run: { content: { type: string; image?: Image }[] }): void => {
     for (const c of run.content) {
-      if (c.type === 'drawing' && c.image?.src?.startsWith('data:')) {
+      if (
+        c.type === 'drawing' &&
+        c.image?.src?.startsWith('data:') &&
+        // A WMF/EMF `src` is an imported metafile whose original bytes are
+        // already in `word/media` (referenced by the unchanged rId). Never
+        // rewrite it — that would orphan the original and emit the raw bytes
+        // under a bogus extension (#743, #755). It round-trips via its rId.
+        !isUnrenderableMetafileSrc(c.image.src)
+      ) {
         images.push(c.image);
       }
     }
@@ -94,6 +103,10 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/tiff': 'tiff',
   'image/webp': 'webp',
   'image/svg+xml': 'svg',
+  'image/x-wmf': 'wmf',
+  'image/wmf': 'wmf',
+  'image/x-emf': 'emf',
+  'image/emf': 'emf',
 };
 
 /**

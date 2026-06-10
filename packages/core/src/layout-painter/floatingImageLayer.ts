@@ -1,4 +1,9 @@
-import { applyImageVisualAttrs, hasImageVisualAttrs } from './renderImage';
+import {
+  applyImageVisualAttrs,
+  hasImageVisualAttrs,
+  metafilePlaceholderKind,
+  buildMetafilePlaceholder,
+} from './renderImage';
 
 /**
  * Minimum fields the floating-image painter needs. Page-level and cell-level
@@ -71,6 +76,20 @@ export function renderFloatingImagesLayer(
     container.style.left = `${floatImg.x}px`;
     if (floatImg.pmStart !== undefined) container.dataset.pmStart = String(floatImg.pmStart);
     if (floatImg.pmEnd !== undefined) container.dataset.pmEnd = String(floatImg.pmEnd);
+
+    // WMF/EMF the browser can't decode → a labeled placeholder, not a broken
+    // <img> (#743, #755). Mirrors the inline/block image paths.
+    const metafileKind = metafilePlaceholderKind(floatImg.src);
+    if (metafileKind) {
+      container.appendChild(
+        buildMetafilePlaceholder(doc, metafileKind, {
+          width: floatImg.width,
+          height: floatImg.height,
+        })
+      );
+      layer.appendChild(container);
+      continue;
+    }
 
     const img = doc.createElement('img');
     img.src = floatImg.src;

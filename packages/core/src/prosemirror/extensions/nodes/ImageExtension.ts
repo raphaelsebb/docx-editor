@@ -190,6 +190,9 @@ export const ImageExtension = createNodeExtension({
     draggable: true,
     attrs: {
       src: {},
+      // Display-only source (WMF/EMF rasterized to PNG). The painter prefers
+      // it; `src` stays the original so serialization round-trips the source.
+      displaySrc: { default: null },
       alt: { default: null },
       title: { default: null },
       width: { default: null },
@@ -249,7 +252,7 @@ export const ImageExtension = createNodeExtension({
     toDOM(node) {
       const attrs = node.attrs as ImageAttrs;
       const domAttrs: Record<string, string> = {
-        src: attrs.src,
+        src: attrs.displaySrc || attrs.src,
         class: 'docx-image',
       };
 

@@ -184,6 +184,8 @@ export interface ImagePositionAttrs {
  */
 export interface ImageAttrs {
   src: string;
+  /** Display-only source (e.g. WMF/EMF rendered to SVG); `src` stays original. */
+  displaySrc?: string | null;
   alt?: string;
   title?: string;
   /** Width in pixels (already converted from EMU) */

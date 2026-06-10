@@ -422,7 +422,7 @@ function resolveImageData(
     const mediaFile = findMediaCaseInsensitive(media, normalizedPath);
     if (mediaFile) {
       return {
-        src: mediaFile.dataUrl || mediaFile.base64, // Use data URL or base64
+        src: mediaFile.dataUrl || mediaFile.base64, // original bytes (for save)
         mimeType: mediaFile.mimeType,
         filename,
       };

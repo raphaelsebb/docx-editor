@@ -353,7 +353,9 @@ export function paragraphToRuns(
       const changeFmt = extractRunFormatting(child.marks, theme);
       const run: ImageRun = {
         kind: 'image',
-        src: attrs.src as string,
+        // Prefer the display-only source (WMF/EMF rasterized to PNG); the
+        // painter never sees the raw metafile when a rasterized form exists.
+        src: (attrs.displaySrc as string | undefined) || (attrs.src as string),
         width: constrained.width,
         height: constrained.height,
         alt: attrs.alt as string | undefined,

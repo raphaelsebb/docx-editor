@@ -361,6 +361,7 @@ function convertImage(image: Image): PMNode {
 
   return schema.node('image', {
     src: image.src || '',
+    displaySrc: image.displaySrc || null,
     alt: image.alt,
     title: image.title,
     width: widthPx,

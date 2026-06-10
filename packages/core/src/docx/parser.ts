@@ -47,6 +47,7 @@ import {
   isSeparatorEndnote,
 } from './footnoteParser';
 import { parseComments } from './commentParser';
+import { rasterizeMetafileImagesForDisplay } from './metafileConversion';
 import { loadFontsWithMapping } from '../utils/fontLoader';
 import { type DocxInput, toArrayBuffer } from '../utils/docxInput';
 
@@ -306,6 +307,11 @@ export async function parseDocx(input: DocxInput, options: ParseOptions = {}): P
       templateVariables,
       warnings: warnings.length > 0 ? warnings : undefined,
     };
+
+    // Render embedded WMF/EMF metafiles to SVG for display, each fit to its own
+    // OOXML extent (browsers can't decode metafiles). Originals are untouched
+    // for a lossless save; no-op outside a browser.
+    await rasterizeMetafileImagesForDisplay(document);
 
     const totalTime = performance.now() - parseStart;
     if (totalTime > 2000) {

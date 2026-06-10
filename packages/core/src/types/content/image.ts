@@ -117,6 +117,13 @@ export interface Image {
   rId: string;
   /** Resolved image data (base64 or blob URL) */
   src?: string;
+  /**
+   * Display-only source for formats the browser can't render natively (WMF/EMF
+   * rendered to SVG at load). The painter prefers this; `src` stays the
+   * original so serialization round-trips the source bytes. Undefined for
+   * normal images.
+   */
+  displaySrc?: string;
   /** Image MIME type */
   mimeType?: string;
   /** Original filename */

@@ -18,7 +18,12 @@ import type {
 } from '../../layout-engine/types';
 import type { RenderContext } from '../renderPage';
 import { isFloatingImageRun } from '../floatingImageFlow';
-import { applyImageVisualAttrs, hasImageVisualAttrs } from '../renderImage';
+import {
+  applyImageVisualAttrs,
+  hasImageVisualAttrs,
+  metafilePlaceholderKind,
+  buildMetafilePlaceholder,
+} from '../renderImage';
 import { resolveFontFamily } from '../../utils/fontResolver';
 import {
   PARAGRAPH_CLASS_NAMES,
@@ -544,6 +549,14 @@ function renderBlockImage(run: ImageRun, doc: Document): HTMLElement {
  * not through this function. If they reach here, render as block.
  */
 export function renderImageRun(run: ImageRun, doc: Document): HTMLElement {
+  // Windows metafile (WMF/EMF) the browser can't decode: a labeled placeholder
+  // instead of a broken <img> (#743, #755). Metafiles are normally rendered to
+  // SVG at load; this catches any left unconverted (no DOM, or a render failure).
+  const metafileKind = metafilePlaceholderKind(run.src);
+  if (metafileKind) {
+    return buildMetafilePlaceholder(doc, metafileKind, { width: run.width, height: run.height });
+  }
+
   // Floating images should be handled at paragraph level, not here
   // If they reach here (e.g., inside table cells), render as block
   let el: HTMLElement;

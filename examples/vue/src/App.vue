@@ -288,6 +288,17 @@ onMounted(async () => {
         const buffer = await editorRef.value?.save();
         return buffer?.byteLength ?? null;
       },
+      // Save, then list `word/media/*` entries — used to assert metafile
+      // round-trip (the original WMF/EMF must survive a save, not the PNG).
+      savedMediaPaths: async (): Promise<string[] | null> => {
+        const buffer = await editorRef.value?.save();
+        if (!buffer) return null;
+        const JSZip = (await import('jszip')).default;
+        const zip = await JSZip.loadAsync(buffer);
+        return Object.keys(zip.files).filter(
+          (p) => p.startsWith('word/media/') && !zip.files[p].dir
+        );
+      },
       agentAddComment: (opts) =>
         editorRef.value?.addComment({
           paraId: opts.paraId,

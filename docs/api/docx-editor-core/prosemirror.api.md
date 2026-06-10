@@ -250,6 +250,7 @@ export interface ImageAttrs {
     cropTop?: number;
     cssFloat?: 'left' | 'right' | 'none';
     displayMode?: 'inline' | 'float' | 'block';
+    displaySrc?: string | null;
     distBottom?: number;
     distLeft?: number;
     distRight?: number;

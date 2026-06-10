@@ -593,7 +593,9 @@ function convertImage(node: PMNode, startPos: number, pageContentHeight?: number
   return {
     kind: 'image',
     id: nextBlockId(),
-    src: attrs.src as string,
+    // Prefer the display-only source (WMF/EMF rasterized to PNG); the original
+    // `src` is kept on the node for lossless serialization.
+    src: (attrs.displaySrc as string | undefined) || (attrs.src as string),
     width: constrained.width,
     height: constrained.height,
     alt: attrs.alt as string | undefined,
