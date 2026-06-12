@@ -1,5 +1,14 @@
 # @eigenpal/nuxt-docx-editor
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [5cdfa5c]
+- Updated dependencies [5cdfa5c]
+- Updated dependencies [d090d08]
+  - @eigenpal/docx-editor-vue@1.4.1
+
 ## 1.4.0
 
 ### Patch Changes

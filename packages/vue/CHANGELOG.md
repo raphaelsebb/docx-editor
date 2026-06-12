@@ -1,5 +1,23 @@
 # @eigenpal/docx-editor-vue
 
+## 1.4.1
+
+### Patch Changes
+
+- 5cdfa5c: Vue: fix the image selection frame appearing shifted off the image. Selecting an image right after a document loads measured the frame one frame before the page finished re-centering, stranding it to the side; the overlay now re-anchors across the layout settle (and across zoom transitions) so the frame keeps wrapping the image tightly. It also re-anchors when the comments sidebar slides the page sideways while an image stays selected, which previously left the frame stranded to the side until the next scroll.
+
+  Fixes #764
+
+- 5cdfa5c: Vue: insert images directly from Insert > Image like React — the OS file picker opens and the image is placed inline, fitted to the page width, with no intermediate dialog. This also fixes a tall empty gap that appeared below an inserted image wider than the page column. The read-file-fit-and-insert flow now lives in core (`insertImageFromFile`), so React and Vue share one code path and behave identically.
+- d090d08: Fix Vue: replying to a tracked change now threads the reply under that suggestion instead of creating a top-level comment, and the sidebar re-stacks cards when one expands so an expanded card no longer overlaps the next. Fixes #773.
+- Updated dependencies [5cdfa5c]
+- Updated dependencies [335ad6c]
+- Updated dependencies [c5a4b1e]
+- Updated dependencies [5cdfa5c]
+  - @eigenpal/docx-editor-core@1.4.1
+  - @eigenpal/docx-editor-agents@1.4.1
+  - @eigenpal/docx-editor-i18n@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes
