@@ -110,7 +110,7 @@ function resolveWatermarkImage(
 }
 
 /** Is this VML shape a Word watermark (vs. an ordinary inline VML shape)? */
-function isWatermarkShape(shape: XmlElement, idLower: string): boolean {
+export function isWatermarkShape(shape: XmlElement, idLower: string): boolean {
   if (idLower.includes('watermark')) return true;
   // Text watermarks use the WordArt preset t136.
   const type = getAttribute(shape, null, 'type') ?? '';
@@ -142,7 +142,12 @@ export function extractWatermark(
       (c) => c.name === 'v:imagedata' || c.name?.endsWith(':imagedata')
     );
 
-    if (!isWatermarkShape(shape, idLower) && !textpath && !imagedata) continue;
+    // Only genuine watermark shapes (or any text-path WordArt, which Word only
+    // uses for watermarks) are claimed here. An ordinary VML picture — e.g. a
+    // header logo — has `imagedata` but is NOT a watermark; leave it for the
+    // run parser to render as an inline image (issue #777). Previously any
+    // `imagedata` shape was greedily treated as a picture watermark.
+    if (!isWatermarkShape(shape, idLower) && !textpath) continue;
 
     const shapeStyle = parseStyleAttr(getAttribute(shape, null, 'style'));
     const rotation = parseFloat(shapeStyle['rotation'] ?? '0') || 0;

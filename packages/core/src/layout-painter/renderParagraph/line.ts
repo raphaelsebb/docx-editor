@@ -307,8 +307,13 @@ export function renderLine(
   // anchored layout.
   if (runsForLine.length === 1 && isImageRun(runsForLine[0])) {
     const imageRun = runsForLine[0] as ImageRun;
-    const imageAlign = imageRun.position?.horizontal?.align;
-    const effectiveAlign = imageAlign ?? alignment;
+    // An anchored image (`wp:positionH`) is positioned by its OWN alignment,
+    // independent of the paragraph's `jc`. Use it, defaulting to left to match
+    // Word (not the paragraph alignment, which would wrongly center a
+    // left-anchored header logo whose paragraph happens to be centered). An
+    // inline image with no anchor follows the paragraph alignment.
+    const horizontal = imageRun.position?.horizontal;
+    const effectiveAlign = horizontal ? (horizontal.align ?? 'left') : alignment;
     lineEl.style.display = 'flex';
     lineEl.style.alignItems = 'center';
     lineEl.style.justifyContent = alignToJustifyContent(effectiveAlign);
