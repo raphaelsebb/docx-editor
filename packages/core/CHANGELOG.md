@@ -1,5 +1,12 @@
 # @eigenpal/docx-editor-core
 
+## 1.6.2
+
+### Patch Changes
+
+- a8bce7a: Fix DOCX export validation at the source: normalize out-of-range paraId/textId and drop orphan comment anchors when parsing, preserve internal-target hyperlinks instead of rewriting them as external, unwrap targetless hyperlinks, and always emit a valid table grid.
+- 768b10e: Redesign the document outline toggle as a filled circular button in the left gutter (instead of a bare icon), tighten the outline panel's indentation, and keep the toggle and panel clear of the vertical ruler and of landscape pages.
+
 ## 1.6.1
 
 ### Patch Changes
