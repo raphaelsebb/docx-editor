@@ -283,7 +283,10 @@
 }
 
 .ep-root .docx-editor__scroll-container {
-  scrollbar-gutter: stable;
+  /* `both-edges` reserves a symmetric gutter so the centered page stays centered
+     on classic-scrollbar platforms (single-edge nudges it ~7px left). Matches
+     the Vue viewport (DocxEditor.css `__pages-viewport`). */
+  scrollbar-gutter: stable both-edges;
 }
 
 .ep-root .docx-editor__scroll-container::-webkit-scrollbar,
