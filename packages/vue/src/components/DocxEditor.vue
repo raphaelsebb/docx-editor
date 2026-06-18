@@ -19,6 +19,7 @@
         :document-name="documentName"
         :document-name-editable="documentNameEditable"
         :show-file-open="showFileOpen"
+        :show-help-menu="showHelpMenu"
         :render-logo="renderLogo"
         :render-title-bar-right="renderTitleBarRight"
         @rename="handleDocumentNameChange"
@@ -322,6 +323,7 @@
         <OutlineToggleButton
           v-if="!showOutline && showOutlineButton"
           :left-offset="showRuler ? 12 + 20 : 12"
+          :top-px="showRuler ? 24 + 30 : 24"
           @toggle="handleToggleOutline"
         />
 
@@ -336,6 +338,7 @@
           :is-open="showOutline"
           :headings="outlineHeadings"
           :left-offset="showRuler ? 12 + 20 : 12"
+          :top-px="showRuler ? 24 + 30 : 24"
           @close="showOutline = false"
           @navigate="handleOutlineNavigate"
         />
@@ -446,6 +449,7 @@ const props = withDefaults(defineProps<DocxEditorProps>(), {
   document: null,
   showToolbar: true,
   showFileOpen: true,
+  showHelpMenu: true,
   showMenuBar: true,
   showRuler: true,
   documentName: '',

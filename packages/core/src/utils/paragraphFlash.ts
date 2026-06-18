@@ -2,28 +2,12 @@
  * DOM helpers for transient paragraph flashes on the painted layout surface.
  */
 
-/**
- * Customization for the transient paragraph flash applied by
- * `scrollToParaId(paraId, { highlight })`.
- *
- * @public
- */
-export interface ParagraphHighlightOptions {
-  /** CSS color used for the transient paragraph flash. Defaults to yellow. */
-  color?: string;
-  /** How long the flash remains visible before it is removed. Defaults to 1200ms. */
-  durationMs?: number;
-}
-
-/**
- * Optional reveal behavior for `scrollToParaId`.
- *
- * @public
- */
-export interface ScrollToParaIdOptions {
-  /** Flash rendered paragraph fragments after scrolling to the paragraph. */
-  highlight?: ParagraphHighlightOptions;
-}
+// The option shapes live in a DOM-free sibling module so non-browser consumers
+// (e.g. the agents package) can type-import them without dragging this file's
+// DOM code into their type-check surface. Re-exported here so the public
+// `@eigenpal/docx-editor-core/utils` barrel surface is unchanged.
+export type { ParagraphHighlightOptions, ScrollToParaIdOptions } from './paragraphFlashTypes';
+import type { ParagraphHighlightOptions } from './paragraphFlashTypes';
 
 /** Default color used by paragraph flashes. */
 export const DEFAULT_PARAGRAPH_FLASH_COLOR = 'rgba(255, 235, 59, 0.55)';

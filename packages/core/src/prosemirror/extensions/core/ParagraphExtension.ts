@@ -581,8 +581,13 @@ function makeApplyStyle(schema: Schema) {
         if (rpr.italic) {
           styleMarks.push(schema.marks.italic.create());
         }
-        if (rpr.fontSize) {
-          styleMarks.push(schema.marks.fontSize.create({ size: rpr.fontSize }));
+        if (rpr.fontSize || rpr.fontSizeCs) {
+          styleMarks.push(
+            schema.marks.fontSize.create({
+              size: rpr.fontSize ?? null,
+              sizeCs: rpr.fontSizeCs ?? rpr.fontSize ?? null,
+            })
+          );
         }
         if (rpr.fontFamily) {
           styleMarks.push(
