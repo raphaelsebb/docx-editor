@@ -367,6 +367,8 @@ export type ParagraphBlock = {
   sdtGroups?: SdtGroup[];
   kind: 'paragraph';
   id: BlockId;
+  /** Stable Word `w14:paraId` / PM `paraId`, when available. */
+  paraId?: string;
   runs: Run[];
   attrs?: ParagraphAttrs;
   /** ProseMirror start position for this block. */

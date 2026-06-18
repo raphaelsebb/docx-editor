@@ -517,6 +517,22 @@
   border-bottom: 2px dashed rgba(156, 39, 176, 0.6);
 }
 
+/* Transient paragraph flash used by scrollToParaId({ highlight }). */
+.layout-paragraph.docx-paragraph-flash {
+  animation: docx-paragraph-flash-fade var(--docx-paragraph-flash-duration, 1200ms) ease-out both;
+}
+
+@keyframes docx-paragraph-flash-fade {
+  0%,
+  70% {
+    box-shadow: inset 0 0 0 9999px var(--docx-paragraph-flash-color, rgba(255, 235, 59, 0.55));
+  }
+
+  100% {
+    box-shadow: inset 0 0 0 9999px transparent;
+  }
+}
+
 /* ============================================================================
  * SELECTION OVERLAY (for programmatic highlighting)
  * ============================================================================ */

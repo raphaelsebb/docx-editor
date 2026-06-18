@@ -541,6 +541,7 @@ export type ParagraphBlock = {
     sdtGroups?: SdtGroup[];
     kind: 'paragraph';
     id: BlockId;
+    paraId?: string;
     runs: Run[];
     attrs?: ParagraphAttrs;
     pmStart?: number;

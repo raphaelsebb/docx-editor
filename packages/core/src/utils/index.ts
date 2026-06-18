@@ -219,6 +219,17 @@ export {
 } from './selectionHighlight';
 export type { HighlightRect, SelectionHighlightConfig, SelectionRange } from './selectionHighlight';
 
+// Paragraph flash helpers
+export {
+  DEFAULT_PARAGRAPH_FLASH_COLOR,
+  DEFAULT_PARAGRAPH_FLASH_DURATION_MS,
+  PARAGRAPH_FLASH_CLASS_NAME,
+  findParagraphFragmentsByParaId,
+  flashParagraphElements,
+  flashParagraphFragmentsByParaId,
+} from './paragraphFlash';
+export type { ParagraphHighlightOptions, ScrollToParaIdOptions } from './paragraphFlash';
+
 // Table split algorithm
 export {
   sumColumnWidths,
