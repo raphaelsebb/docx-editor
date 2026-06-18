@@ -15,10 +15,10 @@ on keystroke→repaint latency.
 ## Status
 
 - [x] Reproduced with a deterministic fixture + e2e test
-- [ ] Root cause identified
-- [ ] Fix landed (React)
-- [ ] Mirrored in Vue (`useDocxEditor.ts`)
-- [ ] Tests green
+- [x] Root cause identified
+- [x] Fix landed (React + core)
+- [x] Vue checked — not affected (uses DOM-rect anchoring, not the layout walk)
+- [x] Tests green
 
 ## Reproduction
 
@@ -54,18 +54,18 @@ fixture. Numbers from back-to-back local runs on 2026-06-18 (Darwin arm64),
 Plain baseline: [`e2e/tests/performance-large-docs.spec.ts`](e2e/tests/performance-large-docs.spec.ts) (308 pages, no review markup).
 Review variant: [`e2e/tests/performance-large-docs-comments-suggestions.spec.ts`](e2e/tests/performance-large-docs-comments-suggestions.spec.ts) (309 pages, 212 comments, 211 suggestions).
 
-| Scenario | Plain (baseline) | Comments + suggestions | Slowdown |
-| --- | --- | --- | --- |
-| Load | 2466ms | 7159ms | ~2.9× |
-| Typing at document start | 99ms ✅ | **3682ms** ❌ | ~37× |
-| Typing in the middle | 17ms ✅ | 17ms ✅ | — |
-| Typing near document end | 17ms ✅ | 17ms ✅ | — |
-| Typing next to a comment + suggestion | n/a (test not present) | **3510ms** ❌ | — |
-| Scrolling after edit | 1505ms ✅ | 1506ms ✅ | — |
-| Undo | 64ms ✅ | **5215ms** ❌ | ~82× |
-| Redo | 81ms ✅ | **2126ms** ❌ | ~26× |
+| Scenario                              | Plain (baseline) | Comments + suggestions (before fix) | Comments + suggestions (after fix) |
+| ------------------------------------- | ---------------- | ----------------------------------- | ---------------------------------- |
+| Load                                  | 2466ms           | 7159ms                              | 3018ms                             |
+| Typing at document start              | 99ms ✅          | **3682ms** ❌                       | **285ms** ✅                       |
+| Typing in the middle                  | 17ms ✅          | 17ms ✅                             | 17ms ✅                            |
+| Typing near document end              | 17ms ✅          | 17ms ✅                             | 17ms ✅                            |
+| Typing next to a comment + suggestion | n/a              | **3510ms** ❌                       | **281ms** ✅                       |
+| Scrolling after edit                  | 1505ms ✅        | 1506ms ✅                           | 1506ms ✅                          |
+| Undo                                  | 64ms ✅          | **5215ms** ❌                       | **140ms** ✅                       |
+| Redo                                  | 81ms ✅          | **2126ms** ❌                       | **212ms** ✅                       |
 
-✅ = under the 500ms budget (pass) · ❌ = over budget (fail).
+✅ = under the 500ms budget (pass) · ❌ = over budget (fail). All scenarios pass after the fix.
 
 ### What the comparison tells us
 
@@ -81,33 +81,53 @@ Review variant: [`e2e/tests/performance-large-docs-comments-suggestions.spec.ts`
 - Load itself is ~2.9× slower, but that's a one-time cost, not the lag the user
   feels while editing.
 
-## Suspects (unverified)
+## Root cause (confirmed)
 
-The keystroke path re-runs work proportional to the whole ~2400-block document
-on every transaction:
+The comments + tracked-changes sidebar resolves a vertical pixel position for
+every comment/suggestion anchor on each full layout pass, via
+`computeAnchorPositions` in
+[`sidebarAnchorPositions.ts`](packages/react/src/components/DocxEditor/internals/sidebarAnchorPositions.ts).
+For each of the ~423 anchors it called
+[`getCaretPosition`](packages/core/src/layout-bridge/selectionRects.ts),
+which **linearly scans every page × fragment** from page 0 to find the one
+containing that PM position. That is O(anchors × pages) ≈ 423 × 309 per pass,
+and it runs more than once per keystroke.
 
-- **Tracked-change overlay `<style>` rebuild** —
-  [`DocxEditorShell.tsx:238`](packages/react/src/components/DocxEditor/DocxEditorShell.tsx#L238)
-  rebuilds comment/insertion/deletion highlight CSS on transactions.
-- **Comment sidebar anchor recomputation** —
-  `components/DocxEditor/internals/sidebarAnchorPositions.ts` and
-  `hooks/useCommentSidebarItems.tsx` recompute Y positions for all comments.
-- **Selection overlay / sidebar item sync** — `useSelectionOverlay.ts`
-  (`updateSelectionOverlay` / `onSelectionChange`) and
-  `DocxEditor.tsx` (`onSelectionChange`, `expandedSidebarItem`).
-- Worth confirming whether the painter re-paints all comment-range /
-  `docx-insertion` / `docx-deletion` spans rather than only the dirty region.
+Why start-vs-end asymmetry: a full layout pass (and this anchor recompute) fires
+when an edit shifts downstream pages — i.e. at the **start of the document** and
+on **undo/redo**. Edits near the **end** take an incremental path that skips it,
+which is why mid/end typing stayed at 17ms in both fixtures.
 
-## Next steps
+Measured with temporary instrumentation on the review fixture:
+`computeAnchorPositions` took **1045–1593ms** with 423 anchors vs **0–1ms** with
+7 anchors visible.
 
-1. Profile a single keystroke with the fixture loaded (Performance panel) to
-   attribute the cost to a concrete code path.
-2. Confirm whether cost scales with comment/suggestion count vs. document size
-   (vary fixture density).
-3. Once root cause is known: fix in React, mirror in Vue, keep both adapters in
-   parity (see CLAUDE.md "React/Vue parity").
+## Fix
+
+`computeAnchorPositions` visits anchors in ascending PM order (via
+`pmDoc.descendants`), and pages/fragments are laid out in that same order — so
+the page containing each successive anchor never moves backwards. The fix threads
+a monotonic page hint through the scan:
+
+- `getCaretPosition` gained an optional `startPageIndex` (additive, backward
+  compatible) so the scan can resume mid-document instead of restarting at 0.
+- `computeAnchorPositions` tracks the last matched page and passes it as the
+  hint (both the caret path and the table fallback).
+
+This turns the pass from O(anchors × pages) into O(anchors + pages):
+`computeAnchorPositions` dropped from ~1500ms to ~40ms with 423 anchors.
+
+Vue is unaffected: its sidebar reads anchor positions straight from painted DOM
+rects (`querySelectorAll('[data-comment-id]')` in `CommentMarginMarkers.vue`),
+not the layout-engine walk — so there is no React→Vue mirror to do here.
+
+## Possible follow-ups (not blocking)
+
+- `computeAnchorPositions` still runs on every full layout pass; could be skipped
+  when neither the doc nor the layout changed shape.
+- Confirm the load-path improvement (7159ms → 3018ms) is also from this fix —
+  the same anchor pass runs during initial settling.
 
 ## Notes
 
-- Test/fixture-only so far — no changeset needed yet. A changeset is required
-  once a fix touches package code.
+- Changeset: `.changeset/large-doc-comment-anchor-perf.md`.

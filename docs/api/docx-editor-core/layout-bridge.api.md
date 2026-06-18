@@ -368,7 +368,7 @@ export function getCachedTextWidth(text: string, font: string, letterSpacing?: n
 export function getCanvasContext(): CanvasRenderingContext2D;
 
 // @public
-export function getCaretPosition(layout: Layout, blocks: FlowBlock[], measures: Measure[], pmPosition: number): CaretPosition_2 | null;
+export function getCaretPosition(layout: Layout, blocks: FlowBlock[], measures: Measure[], pmPosition: number, startPageIndex?: number): CaretPosition_2 | null;
 
 // @public (undocumented)
 export function getCaretPositionFromDom(container: HTMLElement, pmPos: number, overlayRect: DOMRect): DomCaretPosition | null;
