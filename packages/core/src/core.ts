@@ -156,6 +156,16 @@ export {
   isGoogleFontsEnabled,
 } from './utils/fontLoader';
 
+export {
+  type PrintOptions,
+  getDefaultPrintOptions,
+  triggerPrint,
+  openPrintWindow,
+  parsePageRange,
+  formatPageRange,
+  isPrintSupported,
+} from './utils/print';
+
 // ============================================================================
 // VARIABLE DETECTION
 // ============================================================================

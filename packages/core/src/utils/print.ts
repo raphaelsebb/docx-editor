@@ -37,17 +37,37 @@ export function triggerPrint(): void {
   if (typeof window !== 'undefined') window.print();
 }
 
-/** Open a new window with print-optimised body content. */
-export function openPrintWindow(title: string, content: string): Window | null {
+const PRINT_CSS = '@media print { body { margin: 0; padding: 0; } @page { margin: 0; } }';
+
+/**
+ * Open a new window with print-optimised body content.
+ *
+ * Built entirely via DOM APIs (no `document.write` of interpolated strings):
+ * `title` is assigned as a property so a value like `</title><script>` is
+ * treated as text and cannot break out, and `content` is parsed in an inert
+ * document and imported rather than concatenated into markup. `content` is the
+ * caller's already-rendered print HTML; provide trusted markup.
+ * Sibling copy: packages/react/src/components/ui/PrintPreview.tsx.
+ */
+export function openPrintWindow(title: string = 'Document', content: string): Window | null {
   if (typeof window === 'undefined') return null;
   const w = window.open('', '_blank');
   if (!w) return null;
-  w.document.write(
-    `<!DOCTYPE html><html><head><title>${title}</title>` +
-      `<style>@media print { body { margin: 0; padding: 0; } @page { margin: 0; } }</style>` +
-      `</head><body>${content}</body></html>`
-  );
-  w.document.close();
+  // Sever the popup's back-reference to the opener (reverse-tabnabbing defence).
+  w.opener = null;
+  const doc = w.document;
+
+  doc.title = title;
+
+  const style = doc.createElement('style');
+  style.textContent = PRINT_CSS;
+  doc.head.appendChild(style);
+
+  const parsed = new DOMParser().parseFromString(content, 'text/html');
+  for (const node of Array.from(parsed.body.childNodes)) {
+    doc.body.appendChild(doc.importNode(node, true));
+  }
+
   return w;
 }
 
