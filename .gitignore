@@ -84,3 +84,7 @@ examples/vite/public/DC_Template_Descricao_Cargo_Controlado_Enterprise.docx
 examples/vue/public/DC_Template_Descricao_Cargo_Controlado_Enterprise.docx
 .gstack/
 .pr-checklist.json
+
+# Local-only test fixtures and specs (large real-world files, not for CI).
+e2e/fixtures/local/
+e2e/tests/local/

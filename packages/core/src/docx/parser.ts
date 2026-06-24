@@ -55,6 +55,13 @@ import { parseFontTable } from './fontTableParser';
 import { type DocxInput, toArrayBuffer } from '../utils/docxInput';
 import { extractMetafileRaster, isMetafileMimeType } from './metafileRaster';
 
+// 1×1 transparent PNG — used as a no-op placeholder for vector-only metafiles
+// (EMF/WMF with no embedded raster) that browsers cannot render natively.
+// Keeps MediaFile.dataUrl non-null so callers never get undefined, while
+// avoiding the multi-hundred-MB base64 encoding of unrenderable data.
+const VECTOR_METAFILE_PLACEHOLDER =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
 // ============================================================================
 // PROGRESS CALLBACK
 // ============================================================================
@@ -408,11 +415,20 @@ function buildMediaMap(raw: RawDocxContent, _rels: RelationshipMap): Map<string,
     // (EMF+ bitmap record / StretchDIBits payload — the common case for Word
     // header logos and OLE preview pictures), extract it and use that as the
     // display URL. Original bytes stay on `data` so round-trip is unaffected.
+    //
+    // When no embedded raster is found (pure vector metafile — technical
+    // diagrams, CAD exports) skip base64 encoding entirely: encoding a 100+ MB
+    // EMF into a data: URL that no browser can render wastes hundreds of MB of
+    // memory and multiple seconds of main-thread CPU. Use a transparent 1×1 PNG
+    // placeholder instead so <img> renders a blank slot without errors.
     const raster = isMetafileMimeType(mimeType) ? extractMetafileRaster(data) : null;
-    const dataUrl = mediaToDataUrl(
-      raster ? (raster.bytes.buffer as ArrayBuffer) : data,
-      raster ? raster.mimeType : mimeType
-    );
+    const dataUrl =
+      isMetafileMimeType(mimeType) && !raster
+        ? VECTOR_METAFILE_PLACEHOLDER
+        : mediaToDataUrl(
+            raster ? (raster.bytes.buffer as ArrayBuffer) : data,
+            raster ? raster.mimeType : mimeType
+          );
 
     const mediaFile: MediaFile = {
       path,

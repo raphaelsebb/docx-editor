@@ -6,6 +6,7 @@
  */
 
 import type { ParagraphBlock, ParagraphMeasure } from '../../layout-engine/types';
+import type { FloatingImageZone } from './floatingZones';
 
 // =============================================================================
 // TEXT WIDTH CACHE
@@ -389,6 +390,139 @@ export function getParagraphCacheSize(): number {
 }
 
 // =============================================================================
+// PARAGRAPH MEASURE CACHE — FLOATING-ZONE-AWARE
+// =============================================================================
+//
+// When floating zones are active the plain paragraph cache cannot be used
+// because measurement also depends on the zone geometry and the paragraph's
+// cumulative Y (which controls which zone lines overlap). This cache extends
+// the key to include a hash of the active zones and the exact cumulativeY,
+// making it safe to cache even float-affected paragraphs.
+//
+// Cache-hit conditions across consecutive keystrokes:
+//   • Paragraph content unchanged (same paragraphHash)
+//   • Content width unchanged
+//   • Active floating zones unchanged (image not moved/resized)
+//   • cumulativeY unchanged (no upstream paragraph changed its line count)
+//
+// In practice the zones are stable for all text-only edits, and cumulativeY is
+// stable for all paragraphs upstream of the edit + downstream paragraphs when
+// the edited paragraph stays on the same number of lines. This eliminates the
+// dominant ~300–400 ms re-measure cost for image-heavy documents.
+
+/**
+ * Produce a stable string key from the active floating zones.
+ * Includes zone geometry (topY, bottomY, leftMargin, rightMargin, segments).
+ * Does NOT include the anchor block index — that's a document-position detail
+ * already captured by cumulativeY and not needed for measurement correctness.
+ */
+// WeakMap so the hash is computed once per unique zones array reference.
+const floatZonesHashCache = new WeakMap<FloatingImageZone[], string>();
+
+/** @internal */
+export function hashFloatingZones(zones: FloatingImageZone[] | undefined): string {
+  if (!zones || zones.length === 0) return '';
+  const cached = floatZonesHashCache.get(zones);
+  if (cached !== undefined) return cached;
+  // djb2 hash over key geometry fields
+  let h = 5381;
+  for (const z of zones) {
+    h = (((h << 5) + h) ^ Math.round(z.leftMargin)) >>> 0;
+    h = (((h << 5) + h) ^ Math.round(z.rightMargin)) >>> 0;
+    h = (((h << 5) + h) ^ Math.round(z.topY)) >>> 0;
+    h = (((h << 5) + h) ^ Math.round(z.bottomY)) >>> 0;
+    if (z.segments) {
+      for (const s of z.segments) {
+        h = (((h << 5) + h) ^ Math.round(s.availableWidth)) >>> 0;
+      }
+    }
+  }
+  const hash = h.toString(36);
+  floatZonesHashCache.set(zones, hash);
+  return hash;
+}
+
+// Single-level LRU cache keyed on:
+//   "paragraphHash@@maxWidth@@zonesId@@cumulativeY"
+// where zonesId is a SHORT numeric hash of the zone geometry (not the full
+// 1500-char serialization). The full zone geometry string was the performance
+// bottleneck: Map operations on 1630-char keys are ~15x slower than on the
+// ~100-char plain-paragraph cache keys. A 7-char djb2 hash keeps the key short
+// while uniquely identifying each distinct zone configuration in practice.
+
+const DEFAULT_PARAGRAPH_FLOAT_CACHE_SIZE = 10000;
+const paragraphFloatCacheMaxSize = DEFAULT_PARAGRAPH_FLOAT_CACHE_SIZE;
+
+const paragraphFloatMeasureCache = new Map<string, ParagraphMeasure>();
+
+function evictParagraphFloatEntries(): void {
+  while (paragraphFloatMeasureCache.size > paragraphFloatCacheMaxSize) {
+    const oldestKey = paragraphFloatMeasureCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    paragraphFloatMeasureCache.delete(oldestKey);
+  }
+}
+
+function makeFloatKey(
+  paragraphHash: string,
+  maxWidth: number,
+  zonesId: string,
+  cumulativeY: number
+): string {
+  return `${paragraphHash}@@${maxWidth}@@${zonesId}@@${cumulativeY}`;
+}
+
+/** @internal */
+export function getCachedParagraphMeasureFloat(
+  block: ParagraphBlock,
+  maxWidth: number,
+  zones: FloatingImageZone[],
+  cumulativeY: number
+): ParagraphMeasure | undefined {
+  const key = makeFloatKey(
+    hashParagraphBlock(block),
+    maxWidth,
+    hashFloatingZones(zones),
+    cumulativeY
+  );
+  const entry = paragraphFloatMeasureCache.get(key);
+  if (entry !== undefined) {
+    paragraphFloatMeasureCache.delete(key);
+    paragraphFloatMeasureCache.set(key, entry);
+    return entry;
+  }
+  return undefined;
+}
+
+/** @internal */
+export function setCachedParagraphMeasureFloat(
+  block: ParagraphBlock,
+  maxWidth: number,
+  zones: FloatingImageZone[],
+  cumulativeY: number,
+  measure: ParagraphMeasure
+): void {
+  const key = makeFloatKey(
+    hashParagraphBlock(block),
+    maxWidth,
+    hashFloatingZones(zones),
+    cumulativeY
+  );
+  paragraphFloatMeasureCache.set(key, measure);
+  evictParagraphFloatEntries();
+}
+
+/** @internal */
+export function clearParagraphFloatMeasureCache(): void {
+  paragraphFloatMeasureCache.clear();
+}
+
+/** @internal */
+export function getParagraphFloatCacheSize(): number {
+  return paragraphFloatMeasureCache.size;
+}
+
+// =============================================================================
 // GLOBAL CACHE MANAGEMENT
 // =============================================================================
 
@@ -400,11 +534,14 @@ export function clearAllCaches(): void {
   clearTextWidthCache();
   clearFontMetricsCache();
   clearParagraphMeasureCache();
+  clearParagraphFloatMeasureCache();
 }
 
 /**
  * Get total size of all caches
  */
 export function getTotalCacheSize(): number {
-  return getTextCacheSize() + getFontCacheSize() + getParagraphCacheSize();
+  return (
+    getTextCacheSize() + getFontCacheSize() + getParagraphCacheSize() + getParagraphFloatCacheSize()
+  );
 }

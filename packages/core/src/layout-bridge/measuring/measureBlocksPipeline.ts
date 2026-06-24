@@ -79,6 +79,69 @@ export type MeasureBlockFn = (
  */
 export type FloatPageGeometry = PageGeometry;
 
+// One-entry cache for the full zone-setup phase. For text-only keystrokes the
+// floating-bearing blocks don't change, so the fingerprint is stable and we
+// skip the O(N) scan + O(Z²) grouping + map-building entirely.
+let prevFloatFingerprint = '';
+let prevZonesByAnchor = new Map<number, FloatingImageZone[]>();
+let prevAnchorIndices = new Set<number>();
+
+/**
+ * O(K) fingerprint of only the blocks that can contribute floating zones
+ * (K = count of floating-bearing blocks, typically << total block count).
+ * Stable across text-only keystrokes; changes only when images/floating
+ * tables/textboxes are added, removed, or repositioned.
+ */
+function computeFloatFingerprint(
+  blocks: FlowBlock[],
+  contentWidth: number,
+  pageGeometry: FloatPageGeometry | undefined
+): string {
+  // Page geometry is included because topAndBottom textbox vertical resolution
+  // depends on page size/margins, which change on section edits.
+  const pgKey = pageGeometry ? `${pageGeometry.marginTop}:${pageGeometry.contentHeight}` : 'none';
+  const parts = [`w${contentWidth}|pg${pgKey}`];
+
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.kind === 'paragraph') {
+      const p = b as ParagraphBlock;
+      for (const run of p.runs) {
+        if (run.kind !== 'image') continue;
+        const img = run as ImageRun;
+        if (!isTextWrappingFloatingImageRun(img)) continue;
+        const pos = img.position;
+        parts.push(
+          `|P${i}:img:${img.width}x${img.height}:f=${img.cssFloat ?? ''}` +
+            `:hA=${pos?.horizontal?.align ?? ''}:hO=${pos?.horizontal?.posOffset ?? ''}` +
+            `:vA=${pos?.vertical?.align ?? ''}:vO=${pos?.vertical?.posOffset ?? ''}` +
+            `:vR=${pos?.vertical?.relativeTo ?? ''}`
+        );
+      }
+    } else if (b.kind === 'table') {
+      const t = b as TableBlock;
+      if (!t.floating) continue;
+      const fl = t.floating;
+      parts.push(
+        `|P${i}:tbl:x=${fl.tblpX ?? ''}:y=${fl.tblpY ?? ''}:xs=${fl.tblpXSpec ?? ''}` +
+          `:ys=${fl.tblpYSpec ?? ''}:l=${fl.leftFromText ?? ''}:r=${fl.rightFromText ?? ''}`
+      );
+    } else if (b.kind === 'textBox') {
+      const tb = b as TextBoxBlock;
+      if (!isFloatingTextBoxBlock(tb) || isWrapNone(tb.wrapType)) continue;
+      const pos = tb.position;
+      parts.push(
+        `|P${i}:tb:${tb.width}x${tb.height}:wrap=${tb.wrapType ?? ''}:f=${tb.cssFloat ?? ''}` +
+          `:hA=${pos?.horizontal?.align ?? ''}:hO=${pos?.horizontal?.posOffset ?? ''}` +
+          `:vA=${pos?.vertical?.align ?? ''}:vO=${pos?.vertical?.posOffset ?? ''}` +
+          `:vR=${pos?.vertical?.relativeTo ?? ''}`
+      );
+    }
+  }
+
+  return parts.join('');
+}
+
 /**
  * Walk `blocks` and produce one `Measure` per block. Before measuring, this
  * extracts floating exclusion zones (images / floating tables / floating
@@ -100,60 +163,78 @@ export function measureBlocksWithFloats(
   pageGeometry?: FloatPageGeometry
 ): Measure[] {
   const defaultWidth = Array.isArray(contentWidth) ? (contentWidth[0] ?? 0) : contentWidth;
-  const floatingZonesWithAnchors = extractFloatingZones(
-    blocks,
-    defaultWidth,
-    measureBlock,
-    pageGeometry
-  );
 
-  const marginRelative = floatingZonesWithAnchors.filter((z) => z.isMarginRelative);
-  const paragraphRelative = floatingZonesWithAnchors.filter((z) => !z.isMarginRelative);
+  const fingerprint = computeFloatFingerprint(blocks, defaultWidth, pageGeometry);
+  let zonesByAnchor: Map<number, FloatingImageZone[]>;
+  let anchorIndices: Set<number>;
 
-  // Margin-relative zones at the same Y likely belong to the same page —
-  // group by topY and re-anchor to the earliest block index so subsequent
-  // paragraphs see the combined zone.
-  const marginByTopY = new Map<number, FloatingZoneWithAnchor[]>();
-  for (const z of marginRelative) {
-    const group = marginByTopY.get(z.topY) ?? [];
-    group.push(z);
-    marginByTopY.set(z.topY, group);
+  if (fingerprint === prevFloatFingerprint) {
+    zonesByAnchor = prevZonesByAnchor;
+    anchorIndices = prevAnchorIndices;
+  } else {
+    const floatingZonesWithAnchors = extractFloatingZones(
+      blocks,
+      defaultWidth,
+      measureBlock,
+      pageGeometry
+    );
+
+    const marginRelative = floatingZonesWithAnchors.filter((z) => z.isMarginRelative);
+    const paragraphRelative = floatingZonesWithAnchors.filter((z) => !z.isMarginRelative);
+
+    // Margin-relative zones at the same Y likely belong to the same page —
+    // group by topY and re-anchor to the earliest block index so subsequent
+    // paragraphs see the combined zone.
+    const marginByTopY = new Map<number, FloatingZoneWithAnchor[]>();
+    for (const z of marginRelative) {
+      const group = marginByTopY.get(z.topY) ?? [];
+      group.push(z);
+      marginByTopY.set(z.topY, group);
+    }
+
+    // Paragraph-relative zones merge only when (a) Y ranges overlap AND
+    // (b) anchors are within ANCHOR_PROXIMITY blocks. The proximity bound
+    // keeps unrelated floats in distant sections from being merged just
+    // because their paragraph-local topY values happen to overlap.
+    const paragraphGroups = groupOverlappingZones(paragraphRelative, ANCHOR_PROXIMITY);
+
+    const adjustedZones: FloatingZoneWithAnchor[] = [];
+    collectReanchoredToEarliest(paragraphGroups, adjustedZones);
+    collectReanchoredToEarliest(Array.from(marginByTopY.values()), adjustedZones);
+
+    zonesByAnchor = new Map<number, FloatingImageZone[]>();
+    for (const z of adjustedZones) {
+      // A page/margin-pinned full-width band (e.g. a title banner at the top of
+      // the page) reserves space from the top of content, so it must reach the
+      // blocks that precede its own anchor paragraph. Anchor it at block 0 and
+      // keep its content-relative topY/bottomY (cumulativeY is then the running
+      // content offset for the blocks it covers).
+      //
+      // Caveat: this pre-pagination pass has no page/section model, so "top of
+      // content" means the start of the whole flow. Exact for the common case
+      // (single banner near the document start); a band anchored on a later page
+      // or in a later section with different geometry can over-reach. Follow-up.
+      const anchor = z.fullWidthBlock && z.isMarginRelative ? 0 : z.anchorBlockIndex;
+      const existing = zonesByAnchor.get(anchor) ?? [];
+      // Strip the anchor-tracking fields; the rest IS a FloatingImageZone. Spread
+      // (rather than copying each field) so new zone fields can't be dropped here.
+      const {
+        anchorBlockIndex: _anchorBlockIndex,
+        isMarginRelative: _isMarginRelative,
+        ...zone
+      } = z;
+      existing.push(zone);
+      zonesByAnchor.set(anchor, existing);
+    }
+
+    // Derive from the map keys, not the raw zones — full-width bands are
+    // re-anchored to block 0 above, and the activation set must match.
+    anchorIndices = new Set(zonesByAnchor.keys());
+
+    prevFloatFingerprint = fingerprint;
+    prevZonesByAnchor = zonesByAnchor;
+    prevAnchorIndices = anchorIndices;
   }
-
-  // Paragraph-relative zones merge only when (a) Y ranges overlap AND
-  // (b) anchors are within ANCHOR_PROXIMITY blocks. The proximity bound
-  // keeps unrelated floats in distant sections from being merged just
-  // because their paragraph-local topY values happen to overlap.
-  const paragraphGroups = groupOverlappingZones(paragraphRelative, ANCHOR_PROXIMITY);
-
-  const adjustedZones: FloatingZoneWithAnchor[] = [];
-  collectReanchoredToEarliest(paragraphGroups, adjustedZones);
-  collectReanchoredToEarliest(Array.from(marginByTopY.values()), adjustedZones);
-
-  const zonesByAnchor = new Map<number, FloatingImageZone[]>();
-  for (const z of adjustedZones) {
-    // A page/margin-pinned full-width band (e.g. a title banner at the top of
-    // the page) reserves space from the top of content, so it must reach the
-    // blocks that precede its own anchor paragraph. Anchor it at block 0 and
-    // keep its content-relative topY/bottomY (cumulativeY is then the running
-    // content offset for the blocks it covers).
-    //
-    // Caveat: this pre-pagination pass has no page/section model, so "top of
-    // content" means the start of the whole flow. Exact for the common case
-    // (single banner near the document start); a band anchored on a later page
-    // or in a later section with different geometry can over-reach. Follow-up.
-    const anchor = z.fullWidthBlock && z.isMarginRelative ? 0 : z.anchorBlockIndex;
-    const existing = zonesByAnchor.get(anchor) ?? [];
-    // Strip the anchor-tracking fields; the rest IS a FloatingImageZone. Spread
-    // (rather than copying each field) so new zone fields can't be dropped here.
-    const { anchorBlockIndex: _anchorBlockIndex, isMarginRelative: _isMarginRelative, ...zone } = z;
-    existing.push(zone);
-    zonesByAnchor.set(anchor, existing);
-  }
-
-  // Derive from the map keys, not the raw zones — full-width bands are
-  // re-anchored to block 0 above, and the activation set must match.
-  const anchorIndices = new Set(zonesByAnchor.keys());
 
   let cumulativeY = 0;
   let activeZones: FloatingImageZone[] = [];

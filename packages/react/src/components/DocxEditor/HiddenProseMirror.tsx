@@ -281,8 +281,14 @@ const HiddenProseMirrorComponent = forwardRef<HiddenProseMirrorRef, HiddenProseM
         // PM calls `editable()` on every input check.
         editable: () => !readOnlyRef.current,
         // Keeps `overflow-anchor` on the PM root across outer-deco sync (prosemirror#933).
+        // spellcheck/autocorrect/autocapitalize: suppress browser text-analysis pipelines
+        // (spell check, grammar check, language detection) on this off-screen editor.
         attributes: {
           style: 'overflow-anchor: none',
+          spellcheck: 'false',
+          autocorrect: 'off',
+          autocapitalize: 'off',
+          autocomplete: 'off',
         },
         // Use a regular function (not arrow) so ProseMirror's `.call(this, tr)`
         // binding gives us the EditorView. This is critical: plugins like ySyncPlugin
@@ -302,7 +308,6 @@ const HiddenProseMirrorComponent = forwardRef<HiddenProseMirrorRef, HiddenProseM
 
           const newState = this.state.apply(transaction);
           this.updateState(newState);
-
           // Notify about transaction (use ref to avoid dependency issues)
           onTransactionRef.current?.(transaction, newState);
 
@@ -531,7 +536,10 @@ const HiddenProseMirrorComponent = forwardRef<HiddenProseMirrorRef, HiddenProseM
           ...HIDDEN_HOST_STYLES,
           width: widthPx > 0 ? `${widthPx}px` : undefined,
         }}
-        // DO NOT set aria-hidden - this editor provides semantic structure
+        // aria-hidden: PM is at left:-9999px and its content is duplicated in the
+        // visible painter output. Excluding it from the AX tree avoids redundant
+        // screen-reader exposure of the off-screen contenteditable.
+        aria-hidden="true"
       />
     );
 

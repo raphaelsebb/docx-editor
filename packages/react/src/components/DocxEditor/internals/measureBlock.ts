@@ -29,10 +29,12 @@ import {
   type FloatingImageZone,
   type FloatPageGeometry,
   getCachedParagraphMeasure,
+  getCachedParagraphMeasureFloat,
   measureBlocksWithFloats,
   measureParagraph,
   measureTableBlock,
   setCachedParagraphMeasure,
+  setCachedParagraphMeasureFloat,
 } from '@eigenpal/docx-editor-core/layout-bridge';
 
 /**
@@ -48,25 +50,33 @@ export function measureBlock(
     case 'paragraph': {
       const pBlock = block as ParagraphBlock;
 
-      // Cache paragraph measurements when no floating zones affect this block.
-      // Safe because without floating zones the result depends only on content
-      // and contentWidth (both captured in the cache key). When floating zones
-      // ARE present, we always measure fresh since zones depend on inter-block
-      // layout context (cumulative Y, neighboring floating tables/images).
       if (!floatingZones || floatingZones.length === 0) {
         const cached = getCachedParagraphMeasure(pBlock, contentWidth);
         if (cached) return cached;
+        const result = measureParagraph(pBlock, contentWidth, {
+          paragraphYOffset: cumulativeY ?? 0,
+        });
+        setCachedParagraphMeasure(pBlock, contentWidth, result);
+        return result;
       }
 
+      // Floating zones are active: use the zone-aware cache so unchanged
+      // paragraphs get cache hits even in image-heavy documents.
+      // Key: content hash + contentWidth + zone geometry + exact cumulativeY.
+      // cumulativeY is stable for all paragraphs upstream of the edit and for
+      // downstream paragraphs when the edit stays within the same line.
+      const cached = getCachedParagraphMeasureFloat(
+        pBlock,
+        contentWidth,
+        floatingZones,
+        cumulativeY ?? 0
+      );
+      if (cached) return cached;
       const result = measureParagraph(pBlock, contentWidth, {
         floatingZones,
         paragraphYOffset: cumulativeY ?? 0,
       });
-
-      if (!floatingZones || floatingZones.length === 0) {
-        setCachedParagraphMeasure(pBlock, contentWidth, result);
-      }
-
+      setCachedParagraphMeasureFloat(pBlock, contentWidth, floatingZones, cumulativeY ?? 0, result);
       return result;
     }
 

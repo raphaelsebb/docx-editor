@@ -38,7 +38,7 @@ import JSZip from 'jszip';
  */
 export const MAX_ENTRIES = 5000;
 export const MAX_ENTRY_UNCOMPRESSED_BYTES = 150 * 1024 * 1024; // 150 MB
-export const MAX_TOTAL_UNCOMPRESSED_BYTES = 300 * 1024 * 1024; // 300 MB
+export const MAX_TOTAL_UNCOMPRESSED_BYTES = 500 * 1024 * 1024; // 500 MB
 
 /**
  * Throw if reading an entry of `entrySize` bytes would breach the per-entry or
@@ -330,11 +330,11 @@ export function getMediaMimeType(path: string): string {
 export function mediaToDataUrl(data: ArrayBuffer, mimeType: string): string {
   const bytes = new Uint8Array(data);
   let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const CHUNK = 8192; // 8 KB chunks
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
-  const base64 = btoa(binary);
-  return `data:${mimeType};base64,${base64}`;
+  return `data:${mimeType};base64,${btoa(binary)}`;
 }
 
 /**

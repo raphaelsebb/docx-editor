@@ -240,6 +240,9 @@ export function applyPageStyles(
   element.style.position = 'relative';
   element.style.width = `${width}px`;
   element.style.height = `${height}px`;
+  // Scope layout to each page; skip paint for off-screen pages until they enter the viewport.
+  element.style.contain = 'layout size';
+  element.style.contentVisibility = 'auto';
   // Resolve via CSS custom properties so dark mode (.ep-root.dark) re-themes
   // the canvas without any adapter wiring. Word renders a dark page with light
   // text in dark mode; this is a VIEW transform only — the saved DOCX is never
@@ -775,6 +778,18 @@ export function renderPage(
     }
 
     applyFragmentStyles(fragmentEl, fragment, { left: page.margins.left, top: page.margins.top });
+
+    // Stable fingerprint for incremental DOM reuse (virtualization.ts repopulatePageContent).
+    // Paragraph key includes PM size so a text insertion in this fragment changes its fp.
+    if (fragment.kind === 'paragraph') {
+      const pmSize =
+        fragment.pmEnd !== undefined && fragment.pmStart !== undefined
+          ? fragment.pmEnd - fragment.pmStart
+          : 0;
+      fragmentEl.dataset.fragFp = `p,${fragment.blockId},${Math.round(fragment.x)},${Math.round(fragment.y)},${Math.round(fragment.width)},${Math.round(fragment.height)},${fragment.fromLine},${fragment.toLine},${pmSize}`;
+    } else {
+      fragmentEl.dataset.fragFp = `${fragment.kind},${fragment.blockId},${Math.round(fragment.x)},${Math.round(fragment.y)},${Math.round(fragment.width)},${Math.round(fragment.height ?? 0)}`;
+    }
 
     // Tag fragments enclosed by a block-level content control so selection /
     // addressing can find the region; the boundary box is drawn afterward.

@@ -383,17 +383,18 @@ export function useDocumentHistory<
     package?: { document?: unknown; headers?: unknown; footers?: unknown } | null;
   } | null,
 >(document: T, options: Omit<UseHistoryOptions<T>, 'isEqual'> = {}): UseHistoryReturn<T> {
-  // Compare document content, headers, and footers for detecting changes
+  // Use reference equality only — JSON.stringify on a large document (e.g. 39MB)
+  // on every keystroke is O(document_size) and causes >200ms latency on large files.
+  // fromProseDoc always returns a new object reference, so deep equality would
+  // never save a push anyway; rapid-typing entries are coalesced by groupingInterval.
   const isEqual = useCallback((a: T, b: T): boolean => {
-    if (a?.package?.document !== b?.package?.document) {
-      if (JSON.stringify(a?.package?.document) !== JSON.stringify(b?.package?.document)) {
-        return false;
-      }
-    }
-    // Also compare headers/footers (stored as Maps, use reference equality first)
-    if (a?.package?.headers !== b?.package?.headers) return false;
-    if (a?.package?.footers !== b?.package?.footers) return false;
-    return true;
+    if (a === b) return true;
+    if (!a || !b) return false;
+    return (
+      a.package?.document === b.package?.document &&
+      a.package?.headers === b.package?.headers &&
+      a.package?.footers === b.package?.footers
+    );
   }, []);
 
   return useHistory(document, { ...options, isEqual });

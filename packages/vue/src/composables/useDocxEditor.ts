@@ -46,8 +46,12 @@ import {
 } from '@eigenpal/docx-editor-core/prosemirror/extensions';
 import type { CommandMap } from '@eigenpal/docx-editor-core/prosemirror/extensions/types';
 import {
+  getCachedParagraphMeasure,
+  getCachedParagraphMeasureFloat,
   measureBlocksWithFloats,
   measureParagraph,
+  setCachedParagraphMeasure,
+  setCachedParagraphMeasureFloat,
 } from '@eigenpal/docx-editor-core/layout-bridge/measuring';
 import type {
   FloatingImageZone,
@@ -128,11 +132,31 @@ function measureBlock(
   cumulativeY?: number
 ): Measure {
   switch (block.kind) {
-    case 'paragraph':
-      return measureParagraph(block as ParagraphBlock, contentWidth, {
+    case 'paragraph': {
+      const pBlock = block as ParagraphBlock;
+      if (!floatingZones || floatingZones.length === 0) {
+        const cached = getCachedParagraphMeasure(pBlock, contentWidth);
+        if (cached) return cached;
+        const result = measureParagraph(pBlock, contentWidth, {
+          paragraphYOffset: cumulativeY ?? 0,
+        });
+        setCachedParagraphMeasure(pBlock, contentWidth, result);
+        return result;
+      }
+      const cached = getCachedParagraphMeasureFloat(
+        pBlock,
+        contentWidth,
+        floatingZones,
+        cumulativeY ?? 0
+      );
+      if (cached) return cached;
+      const result = measureParagraph(pBlock, contentWidth, {
         floatingZones,
         paragraphYOffset: cumulativeY ?? 0,
       });
+      setCachedParagraphMeasureFloat(pBlock, contentWidth, floatingZones, cumulativeY ?? 0, result);
+      return result;
+    }
 
     case 'table':
       return measureTableBlock(block as TableBlock, contentWidth, measureBlock);

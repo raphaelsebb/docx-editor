@@ -68,13 +68,19 @@ export {
   clearFontMetricsCache,
   setFontCacheSize,
   getFontCacheSize,
-  // Paragraph measure cache
+  // Paragraph measure cache (no floating zones)
   hashParagraphBlock,
   getCachedParagraphMeasure,
   setCachedParagraphMeasure,
   clearParagraphMeasureCache,
   setParagraphCacheSize,
   getParagraphCacheSize,
+  // Paragraph measure cache (floating-zone-aware)
+  hashFloatingZones,
+  getCachedParagraphMeasureFloat,
+  setCachedParagraphMeasureFloat,
+  clearParagraphFloatMeasureCache,
+  getParagraphFloatCacheSize,
   // Global cache management
   clearAllCaches,
   getTotalCacheSize,

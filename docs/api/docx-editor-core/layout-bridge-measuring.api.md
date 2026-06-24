@@ -19,6 +19,9 @@ export function clearAllCaches(): void;
 // @public
 export function clearFontMetricsCache(): void;
 
+// @internal (undocumented)
+export function clearParagraphFloatMeasureCache(): void;
+
 // @public
 export function clearParagraphMeasureCache(): void;
 
@@ -112,6 +115,9 @@ export function getCachedFontMetrics(fontFamily: string, fontSize: number, bold?
 // @public
 export function getCachedParagraphMeasure(block: ParagraphBlock, maxWidth: number): ParagraphMeasure | undefined;
 
+// @internal (undocumented)
+export function getCachedParagraphMeasureFloat(block: ParagraphBlock, maxWidth: number, zones: FloatingImageZone[], cumulativeY: number): ParagraphMeasure | undefined;
+
 // @public
 export function getCachedTextWidth(text: string, font: string, letterSpacing?: number): number | undefined;
 
@@ -130,6 +136,9 @@ export function getFontMetrics(style: FontStyle): FontMetrics;
 // @public
 export function getParagraphCacheSize(): number;
 
+// @internal (undocumented)
+export function getParagraphFloatCacheSize(): number;
+
 // @public
 export function getRunCharWidths(run: TextRun): number[];
 
@@ -144,6 +153,9 @@ export function getXForCharacter(offset: number, charWidths: number[]): number;
 
 // @public
 export function halfPtToPx(halfPt: number): number;
+
+// @internal (undocumented)
+export function hashFloatingZones(zones: FloatingImageZone[] | undefined): string;
 
 // @public
 export function hashParagraphBlock(block: ParagraphBlock): string;
@@ -208,6 +220,9 @@ export function setCachedFontMetrics(fontFamily: string, fontSize: number, bold:
 
 // @public
 export function setCachedParagraphMeasure(block: ParagraphBlock, maxWidth: number, measure: ParagraphMeasure): void;
+
+// @internal (undocumented)
+export function setCachedParagraphMeasureFloat(block: ParagraphBlock, maxWidth: number, zones: FloatingImageZone[], cumulativeY: number, measure: ParagraphMeasure): void;
 
 // @public
 export function setCachedTextWidth(text: string, font: string, letterSpacing: number, width: number): void;

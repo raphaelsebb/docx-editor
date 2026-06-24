@@ -9,7 +9,7 @@
  * fingerprint-changed pages) avoid blink when the document model shifts.
  */
 
-import type { Page } from '../../layout-engine/types';
+import type { Page, BlockId } from '../../layout-engine/types';
 import {
   PAGE_CLASS_NAMES,
   renderPage,
@@ -243,11 +243,19 @@ export function renderPages(
 
       // Update data map entry
       if (data) {
+        const prevPage = data.page;
         data.page = pages[i];
 
         if (data.rendered) {
-          // Surgically replace only the content area, preserving header/footer
-          repopulatePageContent(shell, prevDataMap, totalPages, options);
+          if (isPositionsOnlyChange(prevPage, pages[i])) {
+            // Only PM positions shifted (edit was before this page). The visual
+            // layout is identical — skip the expensive re-render and update
+            // only the data-pm-start/data-pm-end attributes in-place.
+            updateDomPmPositions(shell, prevPage, pages[i]);
+          } else {
+            // Surgically replace only the content area, preserving header/footer
+            repopulatePageContent(shell, prevDataMap, totalPages, options);
+          }
         }
         // If not rendered, it will be populated when it scrolls into view
       }
@@ -487,8 +495,72 @@ function populatePageShell(
 }
 
 /**
- * Surgically replace only the content area of a rendered page shell.
- * Preserves header/footer elements to avoid blinking.
+ * Returns true when the only difference between two page versions is that PM
+ * positions shifted uniformly (edit was entirely before this page). The visual
+ * layout is identical; only absolute PM offsets changed.
+ */
+function isPositionsOnlyChange(prevPage: Page, newPage: Page): boolean {
+  if (prevPage.fragments.length !== newPage.fragments.length) return false;
+  for (let i = 0; i < prevPage.fragments.length; i++) {
+    const prev = prevPage.fragments[i];
+    const next = newPage.fragments[i];
+    if ((prev.pmEnd ?? 0) - (prev.pmStart ?? 0) !== (next.pmEnd ?? 0) - (next.pmStart ?? 0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Shift data-pm-start / data-pm-end on `el` and all its PM-annotated descendants. */
+function shiftPmAttributes(el: HTMLElement, delta: number): void {
+  if (el.dataset.pmStart !== undefined)
+    el.dataset.pmStart = String(Number(el.dataset.pmStart) + delta);
+  if (el.dataset.pmEnd !== undefined) el.dataset.pmEnd = String(Number(el.dataset.pmEnd) + delta);
+  el.querySelectorAll('[data-pm-start],[data-pm-end]').forEach((child) =>
+    shiftPmAttributes(child as HTMLElement, delta)
+  );
+}
+
+/**
+ * Update data-pm-start / data-pm-end attributes on all rendered DOM elements
+ * within a page shell, without re-rendering any content. Used when only PM
+ * positions shifted (isPositionsOnlyChange returned true).
+ */
+function updateDomPmPositions(shell: HTMLElement, prevPage: Page, newPage: Page): void {
+  const contentEl = shell.querySelector(`.${PAGE_CLASS_NAMES.content}`) as HTMLElement | null;
+  if (!contentEl) return;
+
+  const deltaByBlockId = new Map<BlockId, number>();
+  for (let i = 0; i < prevPage.fragments.length && i < newPage.fragments.length; i++) {
+    const prevFrag = prevPage.fragments[i];
+    const newFrag = newPage.fragments[i];
+    const delta = (newFrag.pmStart ?? 0) - (prevFrag.pmStart ?? 0);
+    if (delta !== 0) deltaByBlockId.set(prevFrag.blockId, delta);
+  }
+  if (deltaByBlockId.size === 0) return;
+
+  for (let i = 0; i < contentEl.children.length; i++) {
+    const fragEl = contentEl.children[i] as HTMLElement;
+    const blockIdStr = fragEl.dataset.blockId;
+    if (blockIdStr === undefined) continue;
+    // dataset values are strings; BlockId is string|number so try both
+    const numId = Number(blockIdStr);
+    const delta =
+      deltaByBlockId.get(isNaN(numId) ? blockIdStr : numId) ?? deltaByBlockId.get(blockIdStr);
+    if (!delta) continue;
+    shiftPmAttributes(fragEl, delta);
+  }
+}
+
+/**
+ * Surgically update the content area of a rendered page shell without
+ * replacing the container element. The live contentEl stays in the DOM; only
+ * specific changed fragments are replaced in-place. Unchanged fragments keep
+ * their DOM identity (browser reuses GPU textures) and get only a lightweight
+ * PM-position attribute fixup when positions shifted.
+ *
+ * Falls back to a full container replacement when fragment count changes or
+ * the content element is missing.
  */
 function repopulatePageContent(
   shell: HTMLElement,
@@ -501,21 +573,47 @@ function repopulatePageContent(
 
   const { context, pageOptions } = buildPageRenderArgs(data.page, totalPages, options);
 
-  // Render a full page off-screen
+  // Render a full page off-screen to obtain the new fragment elements.
   const fullPageEl = renderPage(data.page, context, pageOptions);
+  const newContentEl = fullPageEl.querySelector(
+    `.${PAGE_CLASS_NAMES.content}`
+  ) as HTMLElement | null;
+  const oldContentEl = shell.querySelector(`.${PAGE_CLASS_NAMES.content}`) as HTMLElement | null;
 
-  // Extract the new content area from the rendered page
-  const newContentEl = fullPageEl.querySelector(`.${PAGE_CLASS_NAMES.content}`);
-  const oldContentEl = shell.querySelector(`.${PAGE_CLASS_NAMES.content}`);
-
-  if (newContentEl && oldContentEl) {
-    // Replace only the content area — header/footer stay untouched
-    shell.replaceChild(newContentEl, oldContentEl);
-  } else {
-    // Fallback: full replace if structure doesn't match
+  if (!newContentEl || !oldContentEl) {
     shell.innerHTML = '';
     data.rendered = false;
     populatePageShell(shell, pageDataMap, totalPages, options);
+    return;
+  }
+
+  const oldChildren = Array.from(oldContentEl.children) as HTMLElement[];
+  const newChildren = Array.from(newContentEl.children) as HTMLElement[];
+
+  if (oldChildren.length !== newChildren.length) {
+    // Fragment count changed (page reflow, split/merge) — full container swap.
+    shell.replaceChild(newContentEl, oldContentEl);
+    return;
+  }
+
+  // The container (oldContentEl) is never replaced — the browser reuses its
+  // paint layer and only marks individual changed children dirty.
+  for (let i = 0; i < newChildren.length; i++) {
+    const oldEl = oldChildren[i];
+    const newEl = newChildren[i];
+    const oldFp = oldEl.dataset.fragFp;
+    const newFp = newEl.dataset.fragFp;
+
+    if (oldFp && newFp && oldFp === newFp) {
+      // Fragment visually unchanged — only PM positions may have shifted.
+      const oldStart = oldEl.dataset.pmStart;
+      const newStart = newEl.dataset.pmStart;
+      if (oldStart !== newStart && oldStart !== undefined && newStart !== undefined) {
+        shiftPmAttributes(oldEl, Number(newStart) - Number(oldStart));
+      }
+    } else {
+      oldContentEl.replaceChild(newEl, oldEl);
+    }
   }
 }
 

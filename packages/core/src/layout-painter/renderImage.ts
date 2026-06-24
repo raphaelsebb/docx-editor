@@ -174,6 +174,7 @@ export function renderImageFragment(
   const imgEl = doc.createElement('img');
   imgEl.src = /^(?:data:|blob:|https?:)/i.test(block.src) ? block.src : '';
   imgEl.alt = block.alt ?? '';
+  imgEl.decoding = 'async';
 
   // Image sizing
   imgEl.style.width = '100%';
