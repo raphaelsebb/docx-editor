@@ -516,9 +516,15 @@ function shiftPmAttributes(el: HTMLElement, delta: number): void {
   if (el.dataset.pmStart !== undefined)
     el.dataset.pmStart = String(Number(el.dataset.pmStart) + delta);
   if (el.dataset.pmEnd !== undefined) el.dataset.pmEnd = String(Number(el.dataset.pmEnd) + delta);
-  el.querySelectorAll('[data-pm-start],[data-pm-end]').forEach((child) =>
-    shiftPmAttributes(child as HTMLElement, delta)
-  );
+  // Flat querySelectorAll — each descendant is visited exactly once.
+  // A recursive approach double-visits grandchildren because querySelectorAll
+  // already returns all depths, then the recursive call repeats them.
+  el.querySelectorAll<HTMLElement>('[data-pm-start],[data-pm-end]').forEach((child) => {
+    if (child.dataset.pmStart !== undefined)
+      child.dataset.pmStart = String(Number(child.dataset.pmStart) + delta);
+    if (child.dataset.pmEnd !== undefined)
+      child.dataset.pmEnd = String(Number(child.dataset.pmEnd) + delta);
+  });
 }
 
 /**
