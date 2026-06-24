@@ -17,7 +17,6 @@ import { DocxInput } from '@eigenpal/docx-editor-core/utils';
 import { EditorHandle } from '@eigenpal/docx-editor-core';
 import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import * as _eigenpal_docx_editor_core_docx from '@eigenpal/docx-editor-core/docx';
 import { FontDefinition } from '@eigenpal/docx-editor-core/utils';
 import { FontOption } from '@eigenpal/docx-editor-core/utils/fontOptions';
 import { HeaderFooter } from '@eigenpal/docx-editor-core/types/document';
@@ -75,7 +74,7 @@ export interface DocxEditorProps {
     initialZoom?: number;
     loadingIndicator?: ReactNode;
     marginGuideColor?: string;
-    mediaResolver?: _eigenpal_docx_editor_core_docx.MediaResolver;
+    mediaResolver?: MediaResolver;
     mode?: EditorMode;
     onChange?: (document: Document_2) => void;
     onCommentAdd?: (comment: Comment_2) => void;
