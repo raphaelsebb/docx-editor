@@ -62,6 +62,7 @@ import { type InlineHeaderFooterEditorRef } from './InlineHeaderFooterEditor';
 import { DocumentAgent } from '@eigenpal/docx-editor-core/agent';
 import { DefaultLoadingIndicator, DefaultPlaceholder, ParseError } from './DocxEditorHelpers';
 import { type DocxInput } from '@eigenpal/docx-editor-core/utils';
+import type { MediaResolver } from '@eigenpal/docx-editor-core/docx';
 import type { FontDefinition, ScrollToParaIdOptions } from '@eigenpal/docx-editor-core/utils';
 import { useFontLifecycle } from '../hooks/useFontLifecycle';
 import { useTableSelection } from '../hooks/useTableSelection';
@@ -317,8 +318,8 @@ export interface DocxEditorProps {
    *    `useDocxAgentTools` — render the panel anywhere you want.
    */
   agentPanel?: AgentPanelOptions;
-  /** Async hook to convert non-browser-renderable media (EMF/WMF) to a displayable URL. See {@link import('@eigenpal/docx-editor-core/docx').MediaResolver}. */
-  mediaResolver?: import('@eigenpal/docx-editor-core/docx').MediaResolver;
+  /** Async hook to convert non-browser-renderable media (EMF/WMF) to a displayable URL. See {@link MediaResolver}. */
+  mediaResolver?: MediaResolver;
 }
 
 /**
