@@ -28,6 +28,8 @@ import type {
 import {
   type FloatingImageZone,
   type FloatPageGeometry,
+  type FloatZoneCache,
+  createFloatZoneCache,
   getCachedParagraphMeasure,
   getCachedParagraphMeasureFloat,
   measureBlocksWithFloats,
@@ -124,16 +126,19 @@ export function measureBlock(
 }
 
 /**
- * Measure all blocks with floating-image support. Pre-scans for anchored
- * images, floating tables, and floating textboxes, then threads the
- * exclusion zones plus cumulative Y into each per-block measurement.
+ * Return a `measureBlocks` function bound to its own float-zone cache.
+ * Call once per editor instance (e.g. in a `useRef`) so concurrent editors
+ * don't share the one-entry cache and invalidate each other on every keystroke.
  */
-export function measureBlocks(
+export function createMeasureBlocks(
+  cache: FloatZoneCache = createFloatZoneCache()
+): (
   blocks: FlowBlock[],
   contentWidth: number | number[],
   pageGeometry?: FloatPageGeometry
-): Measure[] {
-  return measureBlocksWithFloats(blocks, contentWidth, measureBlock, pageGeometry);
+) => Measure[] {
+  return (blocks, contentWidth, pageGeometry) =>
+    measureBlocksWithFloats(blocks, contentWidth, measureBlock, pageGeometry, cache);
 }
 
 // TableMeasure used internally above; re-exported for tests that compare types.

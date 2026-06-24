@@ -50,6 +50,8 @@ export {
 
 export {
   measureBlocksWithFloats,
+  createFloatZoneCache,
+  type FloatZoneCache,
   type MeasureBlockFn,
   type FloatPageGeometry,
 } from './measureBlocksPipeline';
@@ -80,6 +82,7 @@ export {
   getCachedParagraphMeasureFloat,
   setCachedParagraphMeasureFloat,
   clearParagraphFloatMeasureCache,
+  setParagraphFloatCacheSize,
   getParagraphFloatCacheSize,
   // Global cache management
   clearAllCaches,

@@ -46,6 +46,7 @@ import {
 } from '@eigenpal/docx-editor-core/prosemirror/extensions';
 import type { CommandMap } from '@eigenpal/docx-editor-core/prosemirror/extensions/types';
 import {
+  createFloatZoneCache,
   getCachedParagraphMeasure,
   getCachedParagraphMeasureFloat,
   measureBlocksWithFloats,
@@ -196,14 +197,6 @@ function measureBlock(
   }
 }
 
-function measureBlocks(
-  blocks: FlowBlock[],
-  contentWidth: number | number[],
-  pageGeometry?: FloatPageGeometry
-): Measure[] {
-  return measureBlocksWithFloats(blocks, contentWidth, measureBlock, pageGeometry);
-}
-
 // ============================================================================
 // COMPOSABLE
 // ============================================================================
@@ -315,6 +308,16 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
     editorMode,
     author,
   } = options;
+
+  // Per-instance float-zone cache — each editor instance gets its own
+  // single-entry cache so two concurrent editors don't invalidate each other.
+  const floatZoneCache = createFloatZoneCache();
+  const measureBlocks = (
+    blocks: FlowBlock[],
+    contentWidth: number | number[],
+    pageGeometry?: FloatPageGeometry
+  ): Measure[] =>
+    measureBlocksWithFloats(blocks, contentWidth, measureBlock, pageGeometry, floatZoneCache);
 
   // State
   const document = shallowRef<Document | null>(null);

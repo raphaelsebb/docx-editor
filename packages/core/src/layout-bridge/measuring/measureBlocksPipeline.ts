@@ -79,12 +79,27 @@ export type MeasureBlockFn = (
  */
 export type FloatPageGeometry = PageGeometry;
 
-// One-entry cache for the full zone-setup phase. For text-only keystrokes the
-// floating-bearing blocks don't change, so the fingerprint is stable and we
-// skip the O(N) scan + O(Z²) grouping + map-building entirely.
-let prevFloatFingerprint = '';
-let prevZonesByAnchor = new Map<number, FloatingImageZone[]>();
-let prevAnchorIndices = new Set<number>();
+/**
+ * Per-instance state for the float-zone one-entry cache. Create one per
+ * editor instance with {@link createFloatZoneCache} and pass it to
+ * {@link measureBlocksWithFloats}. Instances that omit the parameter share a
+ * module-level default (fine for single-editor pages, degrades gracefully to
+ * a cache-miss on every keystroke when two editors run concurrently).
+ * @public
+ */
+export interface FloatZoneCache {
+  fingerprint: string;
+  zonesByAnchor: Map<number, FloatingImageZone[]>;
+  anchorIndices: Set<number>;
+}
+
+/** @public */
+export function createFloatZoneCache(): FloatZoneCache {
+  return { fingerprint: '', zonesByAnchor: new Map(), anchorIndices: new Set() };
+}
+
+// Module-level default — shared across all instances that don't pass a cache.
+const _moduleDefaultCache = createFloatZoneCache();
 
 /**
  * O(K) fingerprint of only the blocks that can contribute floating zones
@@ -160,7 +175,8 @@ export function measureBlocksWithFloats(
   blocks: FlowBlock[],
   contentWidth: number | number[],
   measureBlock: MeasureBlockFn,
-  pageGeometry?: FloatPageGeometry
+  pageGeometry?: FloatPageGeometry,
+  cache: FloatZoneCache = _moduleDefaultCache
 ): Measure[] {
   const defaultWidth = Array.isArray(contentWidth) ? (contentWidth[0] ?? 0) : contentWidth;
 
@@ -168,9 +184,9 @@ export function measureBlocksWithFloats(
   let zonesByAnchor: Map<number, FloatingImageZone[]>;
   let anchorIndices: Set<number>;
 
-  if (fingerprint === prevFloatFingerprint) {
-    zonesByAnchor = prevZonesByAnchor;
-    anchorIndices = prevAnchorIndices;
+  if (fingerprint === cache.fingerprint) {
+    zonesByAnchor = cache.zonesByAnchor;
+    anchorIndices = cache.anchorIndices;
   } else {
     const floatingZonesWithAnchors = extractFloatingZones(
       blocks,
@@ -231,9 +247,9 @@ export function measureBlocksWithFloats(
     // re-anchored to block 0 above, and the activation set must match.
     anchorIndices = new Set(zonesByAnchor.keys());
 
-    prevFloatFingerprint = fingerprint;
-    prevZonesByAnchor = zonesByAnchor;
-    prevAnchorIndices = anchorIndices;
+    cache.fingerprint = fingerprint;
+    cache.zonesByAnchor = zonesByAnchor;
+    cache.anchorIndices = anchorIndices;
   }
 
   let cumulativeY = 0;

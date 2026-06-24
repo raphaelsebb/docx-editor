@@ -43,7 +43,8 @@ import type {
 import type { HiddenProseMirrorRef } from '../HiddenProseMirror';
 import type { LayoutSelectionGate } from '../internals/LayoutSelectionGate';
 import { computeAnchorPositions } from '../internals/sidebarAnchorPositions';
-import { measureBlocks } from '../internals/measureBlock';
+import { createMeasureBlocks } from '../internals/measureBlock';
+import { createFloatZoneCache } from '@eigenpal/docx-editor-core/layout-bridge';
 import { createRenderedDomContext } from '../../../plugin-api/RenderedDomContext';
 import type { RenderedDomContext } from '../../../plugin-api/types';
 import { viewportMinHeightPx } from '../internals/scrollUtils';
@@ -180,6 +181,11 @@ export function useLayoutPipeline(opts: UseLayoutPipelineOptions): UseLayoutPipe
   );
   const painterRef = useRef<LayoutPainter | null>(null);
   painterRef.current = painter;
+
+  // Per-instance float-zone cache — each editor instance gets its own
+  // single-entry cache so two concurrent editors don't invalidate each other.
+  const floatCacheRef = useRef(createFloatZoneCache());
+  const measureBlocks = useMemo(() => createMeasureBlocks(floatCacheRef.current), []);
 
   // Scroll-restore plumbing. `pendingScrollRestoreRef` is read by both the
   // pipeline and the post-commit useLayoutEffect below.

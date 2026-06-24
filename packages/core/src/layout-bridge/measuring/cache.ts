@@ -451,7 +451,7 @@ export function hashFloatingZones(zones: FloatingImageZone[] | undefined): strin
 // while uniquely identifying each distinct zone configuration in practice.
 
 const DEFAULT_PARAGRAPH_FLOAT_CACHE_SIZE = 10000;
-const paragraphFloatCacheMaxSize = DEFAULT_PARAGRAPH_FLOAT_CACHE_SIZE;
+let paragraphFloatCacheMaxSize = DEFAULT_PARAGRAPH_FLOAT_CACHE_SIZE;
 
 const paragraphFloatMeasureCache = new Map<string, ParagraphMeasure>();
 
@@ -515,6 +515,13 @@ export function setCachedParagraphMeasureFloat(
 /** @internal */
 export function clearParagraphFloatMeasureCache(): void {
   paragraphFloatMeasureCache.clear();
+}
+
+/** @internal */
+export function setParagraphFloatCacheSize(size: number): void {
+  if (!Number.isFinite(size) || size <= 0) return;
+  paragraphFloatCacheMaxSize = size;
+  evictParagraphFloatEntries();
 }
 
 /** @internal */
