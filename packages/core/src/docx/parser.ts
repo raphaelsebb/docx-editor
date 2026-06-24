@@ -72,8 +72,8 @@ export type ProgressCallback = (stage: string, percent: number) => void;
  * already extracts an embedded PNG/JPEG from EMF/WMF when one exists — this
  * hook is for the residual case (vector-only metafiles) where the host wants
  * to rasterize server-side.
+ * @public
  */
-/** @public */
 export type MediaResolver = (file: MediaFile) => Promise<string | null | undefined>;
 
 /**
@@ -94,7 +94,6 @@ export interface ParseOptions {
   /**
    * Optional async hook to convert non-browser-renderable media (EMF/WMF/TIFF)
    * to a displayable URL. See {@link MediaResolver}.
-   * @public
    */
   mediaResolver?: MediaResolver;
 }
