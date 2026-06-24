@@ -30,6 +30,10 @@ export {
   type CreateEmptyDocumentOptions,
 } from '@eigenpal/docx-editor-core';
 
+// Media resolver — lets consumers supply a server-side EMF/WMF→PNG converter
+// without importing from core directly.
+export type { MediaResolver } from '@eigenpal/docx-editor-core/docx';
+
 // i18n contract — runtime only. Locale string types (LocaleStrings,
 // Translations, PartialLocaleStrings, TranslationKey) live in
 // `@eigenpal/docx-editor-i18n`; import them from there.

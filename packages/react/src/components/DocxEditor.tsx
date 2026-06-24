@@ -155,10 +155,7 @@ export interface DocxEditorProps {
   theme?: Theme | null;
   /** Whether to show toolbar (default: true) */
   showToolbar?: boolean;
-  /**
-   * Whether to show `File > Open` and enable Cmd/Ctrl+O (default: true).
-   * Set false when you provide your own open action elsewhere.
-   */
+  /** Whether to show `File > Open` and enable Cmd/Ctrl+O (default: true). Set false when you provide your own open action elsewhere. */
   showFileOpen?: boolean;
   /** Whether to show the Help menu in the menu bar (default: true) */
   showHelpMenu?: boolean;
@@ -176,10 +173,7 @@ export interface DocxEditorProps {
   initialZoom?: number;
   /** Whether the editor is read-only. When true, hides toolbar and rulers */
   readOnly?: boolean;
-  /**
-   * When true, the editor does not intercept Cmd/Ctrl+F or Cmd/Ctrl+H.
-   * This lets the browser or host app handle native find/history shortcuts.
-   */
+  /** When true, the editor does not intercept Cmd/Ctrl+F or Cmd/Ctrl+H. Lets the browser or host app handle those shortcuts. */
   disableFindReplaceShortcuts?: boolean;
   /** Custom toolbar actions */
   toolbarExtra?: ReactNode;
@@ -323,6 +317,8 @@ export interface DocxEditorProps {
    *    `useDocxAgentTools` — render the panel anywhere you want.
    */
   agentPanel?: AgentPanelOptions;
+  /** Async hook to convert non-browser-renderable media (EMF/WMF) to a displayable URL. See {@link import('@eigenpal/docx-editor-core/docx').MediaResolver}. */
+  mediaResolver?: import('@eigenpal/docx-editor-core/docx').MediaResolver;
 }
 
 /**
@@ -653,6 +649,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     renderTitleBarRight,
     i18n,
     agentPanel,
+    mediaResolver,
   },
   ref
 ) {
@@ -919,6 +916,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     commentsLoadedRef,
     commentIdAllocator: commentIdAllocatorRef.current,
     setDocumentFonts,
+    mediaResolver,
   });
 
   const {

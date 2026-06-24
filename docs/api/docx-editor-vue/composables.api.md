@@ -31,6 +31,7 @@ import { isAutoSaveSupported } from '@eigenpal/docx-editor-core';
 import { Layout } from '@eigenpal/docx-editor-core/layout-engine/types';
 import { LayoutSelectionGate } from '@eigenpal/docx-editor-core/prosemirror';
 import { MaybeRef } from 'vue';
+import { MediaResolver } from '@eigenpal/docx-editor-core/docx/parser';
 import { ParsedClipboardContent } from '@eigenpal/docx-editor-core/utils';
 import { Plugin as Plugin_2 } from 'prosemirror-state';
 import { Ref } from 'vue';
@@ -238,6 +239,7 @@ export interface UseDocxEditorOptions {
     editorMode?: MaybeRef<'editing' | 'suggesting' | 'viewing'>;
     externalPlugins?: Plugin_2[];
     hiddenContainer: Ref<HTMLElement | null>;
+    mediaResolver?: MediaResolver;
     onChange?: (doc: Document_2) => void;
     onError?: (error: Error) => void;
     onSelectionUpdate?: () => void;

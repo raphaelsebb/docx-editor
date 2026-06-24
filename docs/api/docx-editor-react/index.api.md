@@ -21,6 +21,7 @@ import { FontDefinition } from '@eigenpal/docx-editor-core/utils';
 import { FontOption } from '@eigenpal/docx-editor-core/utils/fontOptions';
 import { HeaderFooter } from '@eigenpal/docx-editor-core/types/document';
 import { Layout } from '@eigenpal/docx-editor-core/layout-engine';
+import { MediaResolver } from '@eigenpal/docx-editor-core/docx';
 import { PMContentControl } from '@eigenpal/docx-editor-core/prosemirror';
 import { PrintOptions } from '@eigenpal/docx-editor-core';
 import * as prosemirror_state from 'prosemirror-state';
@@ -73,6 +74,7 @@ export interface DocxEditorProps {
     initialZoom?: number;
     loadingIndicator?: ReactNode;
     marginGuideColor?: string;
+    mediaResolver?: MediaResolver;
     mode?: EditorMode;
     onChange?: (document: Document_2) => void;
     onCommentAdd?: (comment: Comment_2) => void;
@@ -239,6 +241,8 @@ export interface LocaleProviderProps {
     // (undocumented)
     i18n?: Translations;
 }
+
+export { MediaResolver }
 
 // @public
 export function renderAsync(input: DocxInput, container: HTMLElement, options?: RenderAsyncOptions): Promise<DocxEditorHandle>;

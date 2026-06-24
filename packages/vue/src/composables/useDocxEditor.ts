@@ -19,7 +19,7 @@ import { EditorState, type Transaction, type Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
 // Core imports — these all resolve through Vite aliases to packages/core/src/
-import { parseDocx } from '@eigenpal/docx-editor-core/docx/parser';
+import { parseDocx, type MediaResolver } from '@eigenpal/docx-editor-core/docx/parser';
 import {
   getRenderableDocumentFonts,
   getEmbeddedFontFamilies,
@@ -212,6 +212,15 @@ export interface UseDocxEditorOptions {
   editorMode?: MaybeRef<'editing' | 'suggesting' | 'viewing'>;
   /** Author name attached to tracked changes minted in suggesting mode. */
   author?: MaybeRef<string>;
+  /**
+   * Optional async hook called for each media file after parsing. Return a
+   * displayable URL (data: or blob:) to replace the built-in handling, or
+   * `null`/`undefined` to keep it. Use this to rasterize EMF/WMF vector
+   * metafiles that browsers cannot render natively — e.g., send the raw bytes
+   * to a server running `libemf2svg` and return the resulting PNG data URL.
+   * The hook receives a {@link MediaFile} whose `.data` holds the original bytes.
+   */
+  mediaResolver?: MediaResolver;
 }
 
 export interface UseDocxEditorReturn {
@@ -290,6 +299,7 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
     syncCoordinator,
     editorMode,
     author,
+    mediaResolver,
   } = options;
 
   // State
@@ -804,7 +814,7 @@ export function useDocxEditor(options: UseDocxEditorOptions): UseDocxEditorRetur
         arrayBuf = buffer;
       }
 
-      const doc = await parseDocx(arrayBuf);
+      const doc = await parseDocx(arrayBuf, { mediaResolver });
       document.value = doc;
       updateDocumentFonts(doc);
 

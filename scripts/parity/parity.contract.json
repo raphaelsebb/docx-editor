@@ -17,6 +17,7 @@
       "fonts",
       "i18n",
       "initialZoom",
+      "mediaResolver",
       "mode",
       "onChange",
       "onCommentAdd",

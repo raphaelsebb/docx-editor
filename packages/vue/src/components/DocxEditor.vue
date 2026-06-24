@@ -577,6 +577,7 @@ const {
   syncCoordinator,
   editorMode,
   author: authorRef,
+  mediaResolver: props.mediaResolver,
   onChange: (doc) => {
     emit('change', doc);
     emit('update:document', doc);

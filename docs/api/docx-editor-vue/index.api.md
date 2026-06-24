@@ -21,6 +21,7 @@ import { EditorView } from 'prosemirror-view';
 import { FontDefinition } from '@eigenpal/docx-editor-core/utils';
 import { FontOption } from '@eigenpal/docx-editor-core/utils/fontOptions';
 import { MaybeRef } from 'vue';
+import { MediaResolver } from '@eigenpal/docx-editor-core/docx';
 import { Plugin as Plugin_2 } from 'prosemirror-state';
 import { PMContentControl } from '@eigenpal/docx-editor-core/prosemirror';
 import { ScrollToParaIdOptions } from '@eigenpal/docx-editor-core/utils';
@@ -64,6 +65,7 @@ export interface DocxEditorProps {
     fonts?: ReadonlyArray<FontDefinition>;
     i18n?: Translations;
     initialZoom?: number;
+    mediaResolver?: MediaResolver;
     mode?: EditorMode;
     onChange?: (document: Document_2) => void;
     onCommentAdd?: (comment: Comment_2) => void;
@@ -135,6 +137,8 @@ export type EditorMode = 'editing' | 'suggesting' | 'viewing';
 export const i18nPlugin: {
     install(app: App, i18n?: Translations): void;
 };
+
+export { MediaResolver }
 
 // @public
 export function provideLocale(i18n?: MaybeRef<Translations | undefined>): void;

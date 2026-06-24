@@ -73,10 +73,12 @@ export type ProgressCallback = (stage: string, percent: number) => void;
  * hook is for the residual case (vector-only metafiles) where the host wants
  * to rasterize server-side.
  */
+/** @public */
 export type MediaResolver = (file: MediaFile) => Promise<string | null | undefined>;
 
 /**
  * Parsing options
+ * @public
  */
 export interface ParseOptions {
   /** Progress callback for tracking parsing stages */
@@ -92,6 +94,7 @@ export interface ParseOptions {
   /**
    * Optional async hook to convert non-browser-renderable media (EMF/WMF/TIFF)
    * to a displayable URL. See {@link MediaResolver}.
+   * @public
    */
   mediaResolver?: MediaResolver;
 }

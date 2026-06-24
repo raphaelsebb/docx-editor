@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { Document } from '@eigenpal/docx-editor-core/types/document';
 import type { Comment } from '@eigenpal/docx-editor-core/types/content';
-import { parseDocx } from '@eigenpal/docx-editor-core/docx';
+import { parseDocx, type MediaResolver } from '@eigenpal/docx-editor-core/docx';
 import { DocumentAgent } from '@eigenpal/docx-editor-core/agent';
 import {
   loadDocumentFonts,
@@ -40,6 +40,7 @@ export function useDocumentLoader({
   commentsLoadedRef,
   commentIdAllocator,
   setDocumentFonts,
+  mediaResolver,
 }: {
   documentBuffer: DocxInput | null | undefined;
   initialDocument: Document | null | undefined;
@@ -63,6 +64,7 @@ export function useDocumentLoader({
   // (embedded or system-resolved), surfaced in the picker's "Document fonts"
   // group.
   setDocumentFonts: (fonts: FontOption[]) => void;
+  mediaResolver: MediaResolver | undefined;
 }) {
   // Monotonically increasing generation counter so a late `parseDocx`
   // result doesn't overwrite a newer load that started while we were
@@ -94,7 +96,7 @@ export function useDocumentLoader({
       resetForNewDocument();
       setLoadingState({ isLoading: true, parseError: null });
       try {
-        const doc = await parseDocx(buffer);
+        const doc = await parseDocx(buffer, { mediaResolver });
         if (loadGenerationRef.current !== generation) return;
         loadParsedDocument(doc);
       } catch (error) {
@@ -104,7 +106,7 @@ export function useDocumentLoader({
         onError?.(error instanceof Error ? error : new Error(message));
       }
     },
-    [resetForNewDocument, loadParsedDocument, onError, setLoadingState]
+    [resetForNewDocument, loadParsedDocument, onError, setLoadingState, mediaResolver]
   );
 
   // React to documentBuffer / document prop changes.

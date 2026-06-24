@@ -22,6 +22,7 @@ import type { EditorRefLike } from '@eigenpal/docx-editor-agents/bridge';
 import type { PMContentControl } from '@eigenpal/docx-editor-core/prosemirror';
 import type { ContentControlFilter, ContentControlValue } from '@eigenpal/docx-editor-core/agent';
 import type { Translations } from '@eigenpal/docx-editor-i18n';
+import type { MediaResolver } from '@eigenpal/docx-editor-core/docx';
 
 export type EditorMode = 'editing' | 'suggesting' | 'viewing';
 
@@ -119,6 +120,15 @@ export interface DocxEditorProps {
   documentNameEditable?: boolean;
   /** Custom right-side actions renderer for the title bar. Slots remain preferred in templates. */
   renderTitleBarRight?: () => VNodeChild;
+  /**
+   * Optional async hook called for each media file after parsing. Return a
+   * displayable URL (data: or blob:) to replace the built-in handling, or
+   * `null`/`undefined` to keep it. Use this to rasterize EMF/WMF vector
+   * metafiles that browsers cannot render natively — e.g., send the raw bytes
+   * to a server running `libemf2svg` and return the resulting PNG data URL.
+   * The hook receives a {@link MediaFile} whose `.data` holds the original bytes.
+   */
+  mediaResolver?: MediaResolver;
   /** Callback fired whenever the document changes. Mirrors the `@change` event. */
   onChange?: (document: Document) => void;
   /** Callback fired when the editor errors (parse/layout/font). Mirrors the `@error` event. */
