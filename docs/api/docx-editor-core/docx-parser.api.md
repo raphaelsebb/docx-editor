@@ -22,7 +22,7 @@ export function getDocxSummary(buffer: ArrayBuffer): Promise<{
 // @public
 export function getDocxVariables(buffer: ArrayBuffer): Promise<string[]>;
 
-// @public
+// @public (undocumented)
 export type MediaResolver = (file: MediaFile) => Promise<string | null | undefined>;
 
 // @public

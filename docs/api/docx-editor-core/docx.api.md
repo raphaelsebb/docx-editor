@@ -330,7 +330,7 @@ export function isTotalPagesField(field: Field): boolean;
 // @public
 export const KNOWN_FIELD_TYPES: FieldType[];
 
-// @public
+// @public (undocumented)
 export type MediaResolver = (file: MediaFile) => Promise<string | null | undefined>;
 
 // @public
