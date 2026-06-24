@@ -419,7 +419,7 @@ export function getParagraphCacheSize(): number {
 // WeakMap so the hash is computed once per unique zones array reference.
 const floatZonesHashCache = new WeakMap<FloatingImageZone[], string>();
 
-/** @internal */
+/** @public */
 export function hashFloatingZones(zones: FloatingImageZone[] | undefined): string {
   if (!zones || zones.length === 0) return '';
   const cached = floatZonesHashCache.get(zones);
@@ -472,7 +472,7 @@ function makeFloatKey(
   return `${paragraphHash}@@${maxWidth}@@${zonesId}@@${cumulativeY}`;
 }
 
-/** @internal */
+/** @public */
 export function getCachedParagraphMeasureFloat(
   block: ParagraphBlock,
   maxWidth: number,
@@ -494,7 +494,7 @@ export function getCachedParagraphMeasureFloat(
   return undefined;
 }
 
-/** @internal */
+/** @public */
 export function setCachedParagraphMeasureFloat(
   block: ParagraphBlock,
   maxWidth: number,
@@ -512,7 +512,7 @@ export function setCachedParagraphMeasureFloat(
   evictParagraphFloatEntries();
 }
 
-/** @internal */
+/** @public */
 export function clearParagraphFloatMeasureCache(): void {
   paragraphFloatMeasureCache.clear();
 }
@@ -524,7 +524,7 @@ export function setParagraphFloatCacheSize(size: number): void {
   evictParagraphFloatEntries();
 }
 
-/** @internal */
+/** @public */
 export function getParagraphFloatCacheSize(): number {
   return paragraphFloatMeasureCache.size;
 }

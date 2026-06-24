@@ -19,7 +19,7 @@ export function clearAllCaches(): void;
 // @public
 export function clearFontMetricsCache(): void;
 
-// @internal (undocumented)
+// @public (undocumented)
 export function clearParagraphFloatMeasureCache(): void;
 
 // @public
@@ -27,6 +27,9 @@ export function clearParagraphMeasureCache(): void;
 
 // @public
 export function clearTextWidthCache(): void;
+
+// @public (undocumented)
+export function createFloatZoneCache(): FloatZoneCache;
 
 // @public
 export function findCharacterAtX(x: number, charWidths: number[]): number;
@@ -81,6 +84,16 @@ export interface FloatingLineSegmentZone {
 export type FloatPageGeometry = PageGeometry;
 
 // @public
+export interface FloatZoneCache {
+    // (undocumented)
+    anchorIndices: Set<number>;
+    // (undocumented)
+    fingerprint: string;
+    // (undocumented)
+    zonesByAnchor: Map<number, FloatingImageZone[]>;
+}
+
+// @public
 export interface FontMetrics {
     // (undocumented)
     ascent: number;
@@ -115,7 +128,7 @@ export function getCachedFontMetrics(fontFamily: string, fontSize: number, bold?
 // @public
 export function getCachedParagraphMeasure(block: ParagraphBlock, maxWidth: number): ParagraphMeasure | undefined;
 
-// @internal (undocumented)
+// @public (undocumented)
 export function getCachedParagraphMeasureFloat(block: ParagraphBlock, maxWidth: number, zones: FloatingImageZone[], cumulativeY: number): ParagraphMeasure | undefined;
 
 // @public
@@ -136,7 +149,7 @@ export function getFontMetrics(style: FontStyle): FontMetrics;
 // @public
 export function getParagraphCacheSize(): number;
 
-// @internal (undocumented)
+// @public (undocumented)
 export function getParagraphFloatCacheSize(): number;
 
 // @public
@@ -154,7 +167,7 @@ export function getXForCharacter(offset: number, charWidths: number[]): number;
 // @public
 export function halfPtToPx(halfPt: number): number;
 
-// @internal (undocumented)
+// @public (undocumented)
 export function hashFloatingZones(zones: FloatingImageZone[] | undefined): string;
 
 // @public
@@ -164,7 +177,7 @@ export function hashParagraphBlock(block: ParagraphBlock): string;
 export type MeasureBlockFn = (block: FlowBlock, contentWidth: number, floatingZones?: FloatingImageZone[], cumulativeY?: number) => Measure;
 
 // @public
-export function measureBlocksWithFloats(blocks: FlowBlock[], contentWidth: number | number[], measureBlock: MeasureBlockFn, pageGeometry?: FloatPageGeometry): Measure[];
+export function measureBlocksWithFloats(blocks: FlowBlock[], contentWidth: number | number[], measureBlock: MeasureBlockFn, pageGeometry?: FloatPageGeometry, cache?: FloatZoneCache): Measure[];
 
 // @public
 export function measureParagraph(block: ParagraphBlock, maxWidth: number, options?: MeasureParagraphOptions): ParagraphMeasure;
@@ -221,7 +234,7 @@ export function setCachedFontMetrics(fontFamily: string, fontSize: number, bold:
 // @public
 export function setCachedParagraphMeasure(block: ParagraphBlock, maxWidth: number, measure: ParagraphMeasure): void;
 
-// @internal (undocumented)
+// @public (undocumented)
 export function setCachedParagraphMeasureFloat(block: ParagraphBlock, maxWidth: number, zones: FloatingImageZone[], cumulativeY: number, measure: ParagraphMeasure): void;
 
 // @public
@@ -232,6 +245,9 @@ export function setFontCacheSize(size: number): void;
 
 // @public
 export function setParagraphCacheSize(size: number): void;
+
+// @internal (undocumented)
+export function setParagraphFloatCacheSize(size: number): void;
 
 // @public
 export function setTextCacheSize(size: number): void;
